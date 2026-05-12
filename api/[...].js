@@ -10,15 +10,15 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '3mb' }));
+app.use(express.urlencoded({ limit: '3mb', extended: true }));
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/resume', resumeRoutes);
+app.use('/auth', authRoutes);
+app.use('/resume', resumeRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
@@ -27,4 +27,11 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
+// Vercel serverless handler
 export default app;
+
+// Vercel configuration
+export const config = {
+  runtime: 'nodejs18.x',
+  maxDuration: 60
+};

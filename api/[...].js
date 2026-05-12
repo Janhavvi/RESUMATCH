@@ -22,7 +22,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Catch-all for unmatched routes
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
 export default app;
-export const config = {
-  runtime: 'nodejs20.x',
-};

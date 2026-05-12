@@ -23,3 +23,6 @@ app.get('/api/health', (req, res) => {
 });
 
 export default app;
+export const config = {
+  runtime: 'nodejs20.x',
+};

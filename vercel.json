@@ -1,53 +1,8 @@
 {
-  "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "api/[...].js": {
-      "maxDuration": 60,
-      "runtime": "nodejs"
-    }
-  },
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Content-Type",
-          "value": "application/json"
-        }
-      ]
-    },
+  "rewrites": [
     {
       "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
+      "destination": "/index.html"
     }
   ]
 }

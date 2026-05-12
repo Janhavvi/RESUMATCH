@@ -32,6 +32,5 @@ export default app;
 
 // Vercel configuration
 export const config = {
-  runtime: 'nodejs18.x',
-  maxDuration: 60
-};
+  runtime: "nodejs"
+}

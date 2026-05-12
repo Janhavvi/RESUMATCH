@@ -49,8 +49,22 @@ export const ResumeAnalyzerPage = () => {
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Upload failed');
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        // Handle specific error cases
+        if (response.status === 413) {
+          throw new Error('File is too large. Maximum size is 3MB on this deployment. For larger files, consider using cloud storage.');
+        }
+        if (response.status === 400) {
+          throw new Error(data?.error || 'Invalid file. Please use PDF, DOCX, or TXT files.');
+        }
+        throw new Error(data?.error || 'Upload failed. Please try again.');
+      }
+
+      if (!data?.id) {
+        throw new Error('Upload succeeded but no resume ID was returned');
+      }
       
       setIsUploading(false);
       setIsAnalyzing(true);

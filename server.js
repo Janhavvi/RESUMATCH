@@ -65,7 +65,23 @@ async function startServer() {
   }
 
   app.use(cors());
-  app.use(express.json());
+  
+  // Configure JSON/URL-encoded body size limits
+  // Vercel's serverless function limit: 4.5MB for entire request
+  // We use 3MB as a safe buffer
+  const bodySizeLimit = process.env.NODE_ENV === "production" ? "3mb" : "50mb";
+  app.use(express.json({ limit: bodySizeLimit }));
+  app.use(express.urlencoded({ limit: bodySizeLimit, extended: true }));
+
+  // Error handling middleware for request size exceeded
+  app.use((err, req, res, next) => {
+    if (err.status === 413 || err.message.includes("too large")) {
+      return res.status(413).json({
+        error: "Request body too large. For large file uploads, please use smaller files or upload directly to cloud storage.",
+      });
+    }
+    next(err);
+  });
 
   // API Routes
   app.get("/api/health", (req, res) => {

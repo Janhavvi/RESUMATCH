@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Rocket, Loader2 } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -10,10 +11,6 @@ export const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [googleEnabled, setGoogleEnabled] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState("");
-  const googleButtonRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -22,11 +19,15 @@ export const LoginPage = () => {
         const res = await fetch("/api/auth/google/config");
         const data = await res.json().catch(() => ({}));
         if (!active) return;
-        setGoogleEnabled(Boolean(data?.enabled && data?.clientId));
-        setGoogleClientId(data?.clientId || "");
-      } catch {
+        
+        if (data?.enabled && data?.clientId) {
+          // Client ID is now managed by VITE_GOOGLE_CLIENT_ID
+        } else {
+          console.debug("Google OAuth not configured on server");
+        }
+      } catch (err) {
         if (!active) return;
-        setGoogleEnabled(false);
+        console.debug("Failed to load Google OAuth config:", err.message);
       }
     };
     loadConfig();
@@ -35,84 +36,39 @@ export const LoginPage = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!googleEnabled || !googleClientId || !googleButtonRef.current) return;
-
-    let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 50; // 5 seconds max wait
-
-    const handleGoogleCredential = async (response) => {
-      setError("");
-      try {
-        const res = await fetch("/api/auth/google", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ credential: response.credential }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.error || "Google login failed");
-        if (data?.token) localStorage.setItem("token", data.token);
-        if (data?.user) localStorage.setItem("user", JSON.stringify(data.user));
-        navigate("/dashboard");
-      } catch (err) {
-        setError(err.message || "Google login failed");
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    try {
+      if (!credentialResponse?.credential) {
+        throw new Error("No credential received from Google");
       }
-    };
 
-    const renderGoogleButton = () => {
-      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return false;
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
 
-      try {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: handleGoogleCredential,
-        });
-
-        googleButtonRef.current.innerHTML = "";
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          theme: "outline",
-          size: "large",
-          text: mode === "register" ? "signup_with" : "signin_with",
-          shape: "pill",
-          width: 320,
-        });
-        return true;
-      } catch {
-        return false;
+      const data = await res.json().catch(() => ({}));
+      
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error(data?.error || "Invalid Google credentials. Please check your Google Cloud Console OAuth configuration.");
+        }
+        if (res.status === 500) {
+          throw new Error("Server error: Google OAuth is not properly configured. Please contact support.");
+        }
+        throw new Error(data?.error || "Google login failed");
       }
-    };
 
-    setGoogleLoading(true);
-
-    // Try to render immediately if script is already loaded
-    if (renderGoogleButton()) {
-      setGoogleLoading(false);
-      return () => {
-        cancelled = true;
-      };
+      if (data?.token) localStorage.setItem("token", data.token);
+      if (data?.user) localStorage.setItem("user", JSON.stringify(data.user));
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Google auth error:", err);
+      setError(err.message || "Google login failed. Please try again or use email/password login.");
     }
-
-    // Otherwise poll for Google script availability
-    const checkGoogleReady = setInterval(() => {
-      if (cancelled) {
-        clearInterval(checkGoogleReady);
-        return;
-      }
-      if (renderGoogleButton()) {
-        clearInterval(checkGoogleReady);
-        setGoogleLoading(false);
-      } else if (++attempts >= maxAttempts) {
-        clearInterval(checkGoogleReady);
-        setGoogleLoading(false);
-      }
-    }, 100);
-
-    return () => {
-      cancelled = true;
-      clearInterval(checkGoogleReady);
-    };
-  }, [googleEnabled, googleClientId, mode, navigate]);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -221,17 +177,12 @@ export const LoginPage = () => {
           </div>
 
           <div className="min-h-12 flex justify-center items-center">
-            {googleEnabled ? (
-              googleLoading ? (
-                <span className="text-xs text-slate-500">Loading Google Sign-In...</span>
-              ) : (
-                <div ref={googleButtonRef} />
-              )
-            ) : (
-              <span className="text-xs text-slate-500">
-                Google login unavailable (set <code>GOOGLE_CLIENT_ID</code>).
-              </span>
-            )}
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => {
+                setError("Google login failed");
+              }}
+            />
           </div>
         </form>
 
@@ -264,6 +215,8 @@ const Field = ({ label, value, onChange, type = "text", placeholder, required })
       {label}
     </span>
     <input
+      id={label.toLowerCase().replace(/\s+/g, "-")}
+      name={label.toLowerCase().replace(/\s+/g, "-")}
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}

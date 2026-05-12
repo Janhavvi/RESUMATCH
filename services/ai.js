@@ -92,6 +92,133 @@ function fallbackResumeAnalysis(text) {
   };
 }
 
+function normalizeResumeData(resumeData = {}) {
+  const technicalSkills = resumeData.technicalSkills || {};
+  const education = Array.isArray(resumeData.education) ? resumeData.education : [];
+  const projects = Array.isArray(resumeData.projects) ? resumeData.projects : [];
+  const workExperience = Array.isArray(resumeData.workExperience) ? resumeData.workExperience : [];
+
+  return [
+    resumeData.name,
+    resumeData.email,
+    resumeData.phone,
+    resumeData.linkedIn,
+    resumeData.portfolio,
+    resumeData.summary,
+    resumeData.objective,
+    education.map((item) => [item.degree, item.university, item.cgpa, item.year].filter(Boolean).join(" ")).join("\n"),
+    Object.values(technicalSkills).filter(Boolean).join(", "),
+    projects.map((item) => [item.name, item.technologies, item.details].filter(Boolean).join(" - ")).join("\n"),
+    workExperience.map((item) => [item.role, item.company, item.duration, item.responsibilities, item.achievements].filter(Boolean).join(" - ")).join("\n"),
+    ...(resumeData.certifications || []),
+    ...(resumeData.achievements || []),
+    ...(resumeData.featureAchievements || []),
+    ...(resumeData.softSkills || []),
+    ...(resumeData.extracurricular || []),
+    ...(resumeData.languagesKnown || []),
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function getResumeCompleteness(resumeData = {}) {
+  const technicalSkills = resumeData.technicalSkills || {};
+  const achievementItems = [
+    ...(resumeData.achievements || []),
+    ...(resumeData.featureAchievements || []),
+  ];
+  const checks = [
+    ["contact", resumeData.email || resumeData.phone],
+    ["summary", resumeData.summary && resumeData.summary.length > 80],
+    ["skills", Object.values(technicalSkills).some(Boolean)],
+    ["education", (resumeData.education || []).some((item) => item.degree || item.university)],
+    ["projects", (resumeData.projects || []).some((item) => item.name && item.details)],
+    ["experience", (resumeData.workExperience || []).some((item) => item.role && (item.responsibilities || item.achievements))],
+    ["achievements", achievementItems.some(Boolean)],
+  ];
+
+  return {
+    completed: checks.filter(([, value]) => Boolean(value)).map(([key]) => key),
+    missing: checks.filter(([, value]) => !value).map(([key]) => key),
+  };
+}
+
+function fallbackAssistantResponse(question, resumeData = {}, section = "overall") {
+  const resumeText = normalizeResumeData(resumeData);
+  const analysis = fallbackResumeAnalysis(resumeText);
+  const completeness = getResumeCompleteness(resumeData);
+  const lowerQuestion = (question || "").toLowerCase();
+  const focus = section === "overall" ? "your resume" : `the ${section} section`;
+
+  const sectionTips = {
+    header: [
+      "Use one professional email, one phone number, LinkedIn, and a portfolio or GitHub link when relevant.",
+      "Keep contact details plain text so ATS systems can parse them reliably.",
+    ],
+    summary: [
+      "Write 2-3 lines with target role, strongest skills, and measurable impact.",
+      "Avoid generic claims; mention tools, domain, or outcomes that match the job.",
+    ],
+    education: [
+      "Include degree, institution, graduation year, and CGPA only if it helps your profile.",
+      "Add relevant coursework for early-career resumes when experience is limited.",
+    ],
+    skills: [
+      "Group skills by category and mirror important job-description keywords naturally.",
+      "Prioritize tools you can discuss in an interview over long keyword lists.",
+    ],
+    projects: [
+      "For each project, show problem, tech stack, what you built, and user or business impact.",
+      "Add links, scale, metrics, or outcomes where possible.",
+    ],
+    experience: [
+      "Start bullets with action verbs and include scope, tools, and measurable results.",
+      "Turn responsibilities into outcomes, such as speed improved, errors reduced, or users served.",
+    ],
+    certifications: [
+      "Keep current, relevant certifications and include issuer or platform names.",
+      "Place high-value certifications near skills when they support target roles.",
+    ],
+    achievements: [
+      "Use achievements that prove impact: awards, rankings, shipped work, leadership, or measurable wins.",
+      "Prefer specific results over broad statements.",
+    ],
+  };
+
+  if (lowerQuestion.includes("ats")) {
+    return {
+      answer: `For ATS optimization, keep ${focus} simple, keyword-aligned, and measurable. Your estimated ATS score is ${analysis.atsScore}. Add missing role keywords, use standard headings, and avoid graphics-heavy formatting.`,
+      suggestions: [
+        "Use standard headings like Experience, Education, Skills, and Projects.",
+        "Add job-description keywords only where they truthfully match your experience.",
+        "Write bullets with action verb + task + tool + result.",
+      ],
+      analysis,
+    };
+  }
+
+  if (lowerQuestion.includes("gap") || lowerQuestion.includes("missing") || lowerQuestion.includes("analysis")) {
+    return {
+      answer: `I found ${completeness.missing.length || "no major"} resume gaps. The biggest opportunities are: ${completeness.missing.slice(0, 4).join(", ") || "tightening impact metrics and keyword alignment"}.`,
+      suggestions: [
+        ...analysis.weaknesses.slice(0, 3),
+        "Add quantified impact to your strongest project or experience bullet.",
+      ],
+      analysis,
+    };
+  }
+
+  const tips = sectionTips[section] || sectionTips.summary;
+  return {
+    answer: `Here is how I would improve ${focus}: ${tips[0]} ${tips[1] || ""}`,
+    suggestions: [
+      ...tips,
+      "Make each important line answer: what did you do, how did you do it, and what changed?",
+    ],
+    analysis,
+  };
+}
+
 function fallbackJobMatch(resume, jd) {
   const resumeTokens = new Set(tokenize(resume));
   const jdLower = (jd || "").toLowerCase();
@@ -249,5 +376,240 @@ export async function runJobMatch(resume, jd) {
     return await matchWithGemini(resume, jd);
   } catch {
     return fallbackJobMatch(resume, jd);
+  }
+}
+
+export async function runResumeAssistant(question, resumeData, section = "overall") {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return fallbackAssistantResponse(question, resumeData, section);
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const resumeText = normalizeResumeData(resumeData);
+    const prompt = `
+You are a concise Resume AI Assistant inside a resume builder.
+Answer the user's question using the current resume data.
+Return strict JSON with:
+- answer: a helpful direct answer
+- suggestions: 3 to 5 specific resume improvements
+- analysis: {
+  atsScore,
+  strengths,
+  weaknesses,
+  missingKeywords,
+  formattingTips,
+  actionVerbCount
+}
+
+Focused section: ${section}
+Question: ${question}
+
+Resume data:
+${resumeText}
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["answer", "suggestions", "analysis"],
+          properties: {
+            answer: { type: Type.STRING },
+            suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            analysis: {
+              type: Type.OBJECT,
+              required: ["atsScore", "strengths", "weaknesses", "missingKeywords", "formattingTips", "actionVerbCount"],
+              properties: {
+                atsScore: { type: Type.NUMBER },
+                strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+                weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+                missingKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                formattingTips: { type: Type.ARRAY, items: { type: Type.STRING } },
+                actionVerbCount: { type: Type.NUMBER },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const parsed = JSON.parse(response.text);
+    parsed.analysis.atsScore = Math.max(0, Math.min(100, Math.round(Number(parsed.analysis.atsScore || 0))));
+    parsed.analysis.actionVerbCount = Math.max(0, Math.round(Number(parsed.analysis.actionVerbCount || 0)));
+    return parsed;
+  } catch {
+    return fallbackAssistantResponse(question, resumeData, section);
+  }
+}
+
+/**
+ * Generate professional summary using AI
+ */
+export async function generateProfessionalSummary(name, role, skills, experience, variationSeed = Date.now(), currentSummary = "") {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const primarySkill = skills.split(",").map((skill) => skill.trim()).filter(Boolean)[0] || "technology";
+  const fallbackSummaries = [
+    `Motivated ${role || "professional"} with hands-on knowledge of ${primarySkill} and a strong interest in building practical, user-focused solutions. Eager to apply technical skills, learn quickly, and contribute to reliable software delivery.`,
+    `Detail-oriented ${role || "professional"} with a foundation in ${primarySkill} and experience developing academic or personal projects. Skilled at learning new tools, solving problems, and turning requirements into working solutions.`,
+    `Aspiring ${role || "professional"} with growing expertise in ${primarySkill}, web development, and software fundamentals. Brings curiosity, consistency, and a commitment to improving through real-world engineering work.`,
+    `Entry-level ${role || "professional"} with technical exposure to ${primarySkill} and a focus on creating clean, functional applications. Ready to contribute to development teams while continuing to expand engineering depth.`,
+  ];
+  
+  if (!apiKey) {
+    const index = Math.abs(Number(variationSeed) || Date.now()) % fallbackSummaries.length;
+    return fallbackSummaries[index];
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const prompt = `Create a concise 2-3 sentence professional summary for:
+- Name: ${name}
+- Current/Target Role: ${role}
+- Skills: ${skills}
+- Experience: ${experience}
+- Current summary to replace: ${currentSummary}
+- Variation seed: ${variationSeed}
+
+Return as plain text (no JSON, no quotes). Make it compelling for ATS and recruiters.
+Create a fresh version every time. Vary the opening phrase, sentence structure, and emphasis from the current summary while staying truthful to the provided data.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    return response.text.trim();
+  } catch {
+    const index = Math.abs(Number(variationSeed) || Date.now()) % fallbackSummaries.length;
+    return fallbackSummaries[index];
+  }
+}
+
+/**
+ * Improve work experience descriptions using AI
+ */
+export async function improveWorkDescription(role, company, responsibilities) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    return `Demonstrated expertise in ${responsibilities || role} with measurable impact on team productivity and project delivery.`;
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const prompt = `Improve this work experience bullet point for a resume:
+- Role: ${role}
+- Company: ${company}
+- Description: ${responsibilities}
+
+Return a single improved bullet point that:
+1. Starts with a strong action verb
+2. Includes measurable impact or results
+3. Is 1-2 sentences max
+4. Is ATS-friendly (no special formatting)
+
+Return as plain text only, no explanations.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    return response.text.trim();
+  } catch {
+    return responsibilities || `Delivered strong results in ${role} at ${company}.`;
+  }
+}
+
+/**
+ * Generate achievement suggestions based on role and skills
+ */
+export async function generateAchievements(role, skills, industry) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    return [
+      "Delivered projects on schedule while maintaining high quality standards",
+      "Improved team efficiency through process optimization",
+      "Contributed to company goals through technical excellence",
+    ];
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const prompt = `Generate 3 impressive achievement bullet points for resume:
+- Role: ${role}
+- Skills: ${skills}
+- Industry: ${industry}
+
+Each should:
+1. Start with an action verb
+2. Include a quantifiable metric or result
+3. Show business impact
+
+Return as JSON array of strings only, no explanations.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    try {
+      const achievements = JSON.parse(response.text);
+      return Array.isArray(achievements) ? achievements : [response.text];
+    } catch {
+      return [response.text];
+    }
+  } catch {
+    return [
+      "Delivered projects on schedule while maintaining high quality standards",
+      "Improved team efficiency through process optimization",
+      "Contributed to company goals through technical excellence",
+    ];
+  }
+}
+
+/**
+ * Improve project description using AI
+ */
+export async function improveProjectDescription(projectName, technologies, details) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    return `${projectName} - A ${technologies} project focusing on ${details}.`;
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const prompt = `Improve this project description for a resume:
+- Project Name: ${projectName}
+- Technologies: ${technologies}
+- Details: ${details}
+
+Create a compelling 1-2 sentence description that:
+1. Emphasizes business/user impact
+2. Highlights technical achievement
+3. Includes measurable results if possible
+4. Uses action-oriented language
+
+Return as plain text only, no explanations.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    return response.text.trim();
+  } catch {
+    return `${projectName} - Developed using ${technologies} to ${details}.`;
   }
 }

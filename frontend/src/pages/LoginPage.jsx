@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Rocket, Loader2 } from "lucide-react";
-import { GoogleLogin } from "@react-oauth/google";
-import { apiFetch } from "../lib/api.js";
+import { apiFetch, apiUrl } from "../lib/api.js";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -14,7 +13,33 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [googleEnabled, setGoogleEnabled] = useState(Boolean(googleClientId));
-  const [serverGoogleClientId, setServerGoogleClientId] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const encodedUser = params.get("user");
+    const oauthError = params.get("error");
+
+    if (token) {
+      localStorage.setItem("token", token);
+      if (encodedUser) {
+        try {
+          const user = JSON.parse(atob(encodedUser.replace(/-/g, "+").replace(/_/g, "/")));
+          localStorage.setItem("user", JSON.stringify(user));
+        } catch {
+          localStorage.removeItem("user");
+        }
+      }
+      window.history.replaceState({}, "", "/login");
+      navigate("/dashboard");
+      return;
+    }
+
+    if (oauthError) {
+      setError(oauthError);
+      window.history.replaceState({}, "", "/login");
+    }
+  }, [navigate]);
 
   useEffect(() => {
     let active = true;
@@ -24,9 +49,8 @@ export const LoginPage = () => {
         const data = await res.json().catch(() => ({}));
         if (!active) return;
         
-        if (data?.enabled && data?.clientId) {
-          setServerGoogleClientId(data.clientId);
-          setGoogleEnabled(Boolean(googleClientId || data.clientId));
+        if (data?.enabled) {
+          setGoogleEnabled(true);
         } else {
           setGoogleEnabled(Boolean(googleClientId));
           console.debug("Google OAuth not configured on server");
@@ -41,43 +65,7 @@ export const LoginPage = () => {
     return () => {
       active = false;
     };
-  }, []);
-
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setError("");
-    try {
-      if (!credentialResponse?.credential) {
-        throw new Error("No credential received from Google");
-      }
-
-      const res = await apiFetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential: credentialResponse.credential }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      
-      if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error(data?.error || "Invalid Google credentials. Please check your Google Cloud Console OAuth configuration.");
-        }
-        if (res.status === 500) {
-          throw new Error("Server error: Google OAuth is not properly configured. Please contact support.");
-        }
-        throw new Error(data?.error || "Google login failed");
-      }
-
-      if (data?.token) localStorage.setItem("token", data.token);
-      if (data?.user) localStorage.setItem("user", JSON.stringify(data.user));
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("Google auth error:", err);
-      setError(err.message || "Google login failed. Please try again or use email/password login.");
-    }
-  };
-
-  const googleClientIdForButton = googleClientId || serverGoogleClientId;
+  }, [googleClientId]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -188,20 +176,15 @@ export const LoginPage = () => {
               </div>
 
               <div className="min-h-12 flex justify-center items-center">
-                {googleClientId ? (
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => {
-                      setError("Google login failed");
-                    }}
-                  />
-                ) : (
-                  <GoogleIdentityButton
-                    clientId={googleClientIdForButton}
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => setError("Google login failed")}
-                  />
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = apiUrl("/api/auth/google/start");
+                  }}
+                  className="w-full h-11 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-bold transition-all"
+                >
+                  Continue with Google
+                </button>
               </div>
             </>
           ) : null}
@@ -247,58 +230,3 @@ const Field = ({ label, value, onChange, type = "text", placeholder, required })
     />
   </label>
 );
-
-const GoogleIdentityButton = ({ clientId, onSuccess, onError }) => {
-  const buttonRef = useRef(null);
-
-  useEffect(() => {
-    if (!clientId || !buttonRef.current) return;
-
-    let cancelled = false;
-
-    const loadScript = () =>
-      new Promise((resolve, reject) => {
-        if (window.google?.accounts?.id) {
-          resolve();
-          return;
-        }
-
-        const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
-        if (existing) {
-          existing.addEventListener("load", resolve, { once: true });
-          existing.addEventListener("error", reject, { once: true });
-          return;
-        }
-
-        const script = document.createElement("script");
-        script.src = "https://accounts.google.com/gsi/client";
-        script.async = true;
-        script.defer = true;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.body.appendChild(script);
-      });
-
-    loadScript()
-      .then(() => {
-        if (cancelled || !buttonRef.current) return;
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: onSuccess,
-        });
-        window.google.accounts.id.renderButton(buttonRef.current, {
-          theme: "outline",
-          size: "large",
-          type: "standard",
-          width: 320,
-        });
-      })
-      .catch(onError);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [clientId, onSuccess, onError]);
-
-  return <div ref={buttonRef} className="min-h-10" />;
-};

@@ -33,6 +33,7 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 APP_URL=https://your-amplify-domain.amplifyapp.com
+BACKEND_URL=https://your-render-service.onrender.com
 ```
 
 The blueprint also sets:

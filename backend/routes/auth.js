@@ -45,6 +45,48 @@ function getAppUrl() {
   return appUrl.replace(/\/$/, ""); // Remove trailing slash
 }
 
+function getBackendUrl(req) {
+  const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
+  return backendUrl.replace(/\/$/, "");
+}
+
+function getGoogleRedirectUri(req) {
+  return `${getBackendUrl(req)}/api/auth/callback/google`;
+}
+
+async function issueGoogleSession(payload) {
+  if (!payload?.email) {
+    throw new Error("Google account email is unavailable");
+  }
+
+  if (payload.email_verified === false) {
+    const error = new Error("Google email is not verified");
+    error.status = 401;
+    throw error;
+  }
+
+  let user = db.prepare("SELECT * FROM users WHERE email = ?").get(payload.email);
+
+  if (!user) {
+    const fallbackPassword = crypto.randomBytes(24).toString("hex");
+    const hashedPassword = await bcrypt.hash(fallbackPassword, 10);
+    const name = payload.name || payload.email.split("@")[0];
+    const result = db
+      .prepare("INSERT INTO users (email, password, name) VALUES (?, ?, ?)")
+      .run(payload.email, hashedPassword, name);
+    user = db.prepare("SELECT * FROM users WHERE id = ?").get(result.lastInsertRowid);
+  }
+
+  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+    expiresIn: "7d",
+  });
+
+  return {
+    token,
+    user: { id: user.id, email: user.email, name: user.name },
+  };
+}
+
 function validateGoogleOAuthSetup() {
   const clientId = getGoogleClientId();
   const clientSecret = getGoogleClientSecret();
@@ -73,12 +115,83 @@ function getUserFromToken(authHeader) {
 
 router.get("/google/config", (req, res) => {
   const clientId = getGoogleClientId();
-  const appUrl = getAppUrl();
   res.json({
     enabled: Boolean(clientId),
     clientId,
-    redirectUri: `${appUrl}/api/auth/callback/google`,
+    redirectUri: getGoogleRedirectUri(req),
   });
+});
+
+router.get("/google/start", (req, res) => {
+  const clientId = getGoogleClientId();
+  const clientSecret = getGoogleClientSecret();
+  if (!clientId || !clientSecret) {
+    return res.status(500).send("Google login is not configured on this server.");
+  }
+
+  const appUrl = getAppUrl();
+  const state = Buffer.from(JSON.stringify({ returnTo: `${appUrl}/login` })).toString("base64url");
+  const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("redirect_uri", getGoogleRedirectUri(req));
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("scope", "openid email profile");
+  authUrl.searchParams.set("prompt", "select_account");
+  authUrl.searchParams.set("state", state);
+
+  res.redirect(authUrl.toString());
+});
+
+router.get("/callback/google", async (req, res) => {
+  const appUrl = getAppUrl();
+  const redirectToLogin = (message) => {
+    const url = new URL(`${appUrl}/login`);
+    url.searchParams.set("error", message);
+    return res.redirect(url.toString());
+  };
+
+  try {
+    const code = String(req.query.code || "");
+    if (!code) return redirectToLogin("Google did not return an authorization code.");
+
+    const clientId = getGoogleClientId();
+    const clientSecret = getGoogleClientSecret();
+    if (!clientId || !clientSecret) {
+      return redirectToLogin("Google login is not configured on this server.");
+    }
+
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: getGoogleRedirectUri(req),
+        grant_type: "authorization_code",
+      }),
+    });
+
+    const tokenData = await tokenResponse.json().catch(() => ({}));
+    if (!tokenResponse.ok || !tokenData.id_token) {
+      console.error("Google OAuth token exchange failed:", tokenData);
+      return redirectToLogin("Google login failed during token exchange.");
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: tokenData.id_token,
+      audience: clientId,
+    });
+    const session = await issueGoogleSession(ticket.getPayload());
+
+    const redirectUrl = new URL(`${appUrl}/login`);
+    redirectUrl.searchParams.set("token", session.token);
+    redirectUrl.searchParams.set("user", Buffer.from(JSON.stringify(session.user)).toString("base64url"));
+    res.redirect(redirectUrl.toString());
+  } catch (error) {
+    console.error("Google OAuth callback error:", error);
+    redirectToLogin("Google login failed.");
+  }
 });
 
 // Debug endpoint to check OAuth setup (development only)

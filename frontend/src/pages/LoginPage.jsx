@@ -26,12 +26,12 @@ export const LoginPage = () => {
         if (data?.enabled && data?.clientId) {
           setGoogleEnabled(Boolean(googleClientId));
         } else {
-          setGoogleEnabled(false);
+          setGoogleEnabled(Boolean(googleClientId));
           console.debug("Google OAuth not configured on server");
         }
       } catch (err) {
         if (!active) return;
-        setGoogleEnabled(false);
+        setGoogleEnabled(Boolean(googleClientId));
         console.debug("Failed to load Google OAuth config:", err.message);
       }
     };

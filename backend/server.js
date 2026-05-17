@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
@@ -100,6 +99,7 @@ async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     try {
+      const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         root: path.join(__dirname, "../frontend"),
         server: {

@@ -1,0 +1,48 @@
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import {defineConfig, loadEnv} from 'vite';
+
+export default defineConfig(({mode}) => {
+  const envDir = path.resolve(__dirname, '..');
+  const env = loadEnv(mode, envDir, '');
+  const apiTarget = env.VITE_API_URL || env.API_URL || 'http://localhost:3000';
+
+  return {
+    envDir,
+    plugins: [react(), tailwindcss()],
+    define: {
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'ui-vendor': ['framer-motion', 'motion', 'lucide-react'],
+            'charts': ['recharts'],
+            'pdf': ['pdf-parse', 'pdfkit', 'mammoth'],
+          },
+        },
+      },
+      chunkSizeWarningLimit: 1000,
+    },
+    server: {
+      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      hmr: process.env.DISABLE_HMR !== 'true',
+      proxy: {
+        '/api': {
+          target: apiTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+  };
+});

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Rocket, Loader2 } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
@@ -14,6 +14,7 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [googleEnabled, setGoogleEnabled] = useState(Boolean(googleClientId));
+  const [serverGoogleClientId, setServerGoogleClientId] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -24,7 +25,8 @@ export const LoginPage = () => {
         if (!active) return;
         
         if (data?.enabled && data?.clientId) {
-          setGoogleEnabled(Boolean(googleClientId));
+          setServerGoogleClientId(data.clientId);
+          setGoogleEnabled(Boolean(googleClientId || data.clientId));
         } else {
           setGoogleEnabled(Boolean(googleClientId));
           console.debug("Google OAuth not configured on server");
@@ -74,6 +76,8 @@ export const LoginPage = () => {
       setError(err.message || "Google login failed. Please try again or use email/password login.");
     }
   };
+
+  const googleClientIdForButton = googleClientId || serverGoogleClientId;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -184,12 +188,20 @@ export const LoginPage = () => {
               </div>
 
               <div className="min-h-12 flex justify-center items-center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => {
-                    setError("Google login failed");
-                  }}
-                />
+                {googleClientId ? (
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => {
+                      setError("Google login failed");
+                    }}
+                  />
+                ) : (
+                  <GoogleIdentityButton
+                    clientId={googleClientIdForButton}
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError("Google login failed")}
+                  />
+                )}
               </div>
             </>
           ) : null}
@@ -235,3 +247,58 @@ const Field = ({ label, value, onChange, type = "text", placeholder, required })
     />
   </label>
 );
+
+const GoogleIdentityButton = ({ clientId, onSuccess, onError }) => {
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (!clientId || !buttonRef.current) return;
+
+    let cancelled = false;
+
+    const loadScript = () =>
+      new Promise((resolve, reject) => {
+        if (window.google?.accounts?.id) {
+          resolve();
+          return;
+        }
+
+        const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+        if (existing) {
+          existing.addEventListener("load", resolve, { once: true });
+          existing.addEventListener("error", reject, { once: true });
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+
+    loadScript()
+      .then(() => {
+        if (cancelled || !buttonRef.current) return;
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: onSuccess,
+        });
+        window.google.accounts.id.renderButton(buttonRef.current, {
+          theme: "outline",
+          size: "large",
+          type: "standard",
+          width: 320,
+        });
+      })
+      .catch(onError);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clientId, onSuccess, onError]);
+
+  return <div ref={buttonRef} className="min-h-10" />;
+};

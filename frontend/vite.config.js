@@ -26,7 +26,6 @@ export default defineConfig(({mode}) => {
             'react-vendor': ['react', 'react-dom', 'react-router-dom'],
             'ui-vendor': ['framer-motion', 'motion', 'lucide-react'],
             'charts': ['recharts'],
-            'pdf': ['pdf-parse', 'pdfkit', 'mammoth'],
           },
         },
       },

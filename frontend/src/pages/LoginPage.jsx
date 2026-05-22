@@ -7,6 +7,7 @@ import { apiFetch } from "../lib/api.js";
 export const LoginPage = () => {
   const navigate = useNavigate();
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
+  const [tilt, setTilt] = useState({ x: "4deg", y: "-5deg" });
   const [mode, setMode] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -90,11 +91,33 @@ export const LoginPage = () => {
     }
   };
 
+  const updateTilt = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    setTilt({
+      x: `${(-y * 8 + 2).toFixed(2)}deg`,
+      y: `${(x * 10 - 3).toFixed(2)}deg`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0514] text-slate-100 flex items-center justify-center p-6 scene-3d overflow-hidden">
       <div className="absolute inset-x-0 bottom-0 h-72 depth-grid pointer-events-none" />
+      <div className="absolute left-[8%] top-[17%] hidden lg:block prism-3d opacity-70 pointer-events-none" />
+      <div className="absolute right-[12%] bottom-[18%] hidden lg:block wire-cube-3d opacity-60 pointer-events-none" />
+      <div className="absolute left-[14%] bottom-[22%] hidden xl:block layer-stack-3d opacity-55 pointer-events-none">
+        <span />
+        <span />
+        <span />
+      </div>
       <div className="absolute top-0 right-0 w-[560px] h-[560px] bg-indigo-600/10 rounded-full blur-[110px] pointer-events-none" />
-      <div className="w-full max-w-md p-8 rounded-[32px] glass border border-white/10 relative z-10 card-3d float-3d">
+      <div
+        className="w-full max-w-md p-8 rounded-[32px] glass border border-white/10 relative z-10 card-3d float-3d holo-sheen"
+        onMouseMove={updateTilt}
+        onMouseLeave={() => setTilt({ x: "4deg", y: "-5deg" })}
+        style={{ "--tilt-x": tilt.x, "--tilt-y": tilt.y }}
+      >
         <div className="flex items-center gap-3 mb-8 lift-3d">
           <div className="size-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center logo-3d">
             <Rocket className="size-6 text-white" />

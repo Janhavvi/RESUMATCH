@@ -183,7 +183,13 @@ export const DashboardPage = () => {
   const goNewAudit = () => navigate("/analyzer");
 
   return (
-    <div className="space-y-8 pb-12 scene-3d">
+    <div className="space-y-8 pb-12 scene-3d relative overflow-hidden">
+      <div className="absolute -right-12 top-8 hidden xl:block wire-cube-3d opacity-25 pointer-events-none" />
+      <div className="absolute left-1/3 top-28 hidden xl:block layer-stack-3d opacity-25 pointer-events-none">
+        <span />
+        <span />
+        <span />
+      </div>
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-4xl font-bold tracking-tight mb-2">
@@ -279,7 +285,7 @@ export const DashboardPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 p-8 rounded-[32px] glass flex flex-col panel-3d">
+        <div className="lg:col-span-2 p-8 rounded-[32px] glass flex flex-col panel-3d holo-sheen">
           <div className="flex items-center justify-between mb-10">
             <div>
               <h3 className="text-xl font-bold mb-1 tracking-tight">Performance Trends</h3>
@@ -398,7 +404,7 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      <div className="p-10 rounded-[40px] glass panel-3d">
+      <div className="p-10 rounded-[40px] glass panel-3d holo-sheen">
         <div className="flex items-center justify-between mb-10">
           <div>
             <h3 className="text-2xl font-bold mb-1 tracking-tight">

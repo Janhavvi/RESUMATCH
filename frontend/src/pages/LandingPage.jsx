@@ -9,6 +9,9 @@ export const LandingPage = () => {
       {/* Decorative Background Elements */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-600/10 rounded-full blur-[120px] -mr-96 -mt-96 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[100px] -ml-72 -mb-72 pointer-events-none" />
+      <div className="absolute left-[7%] top-40 hidden lg:block prism-3d opacity-60 pointer-events-none" />
+      <div className="absolute right-[8%] top-[34rem] hidden xl:block wire-cube-3d opacity-50 pointer-events-none" />
+      <div className="absolute inset-x-0 top-[40rem] h-72 depth-grid pointer-events-none" />
 
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 bg-[#0a0514]/40 backdrop-blur-xl border-b border-white/5">
@@ -42,7 +45,7 @@ export const LandingPage = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="space-y-12"
           >
-            <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full glass border border-indigo-500/20 text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">
+            <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full glass border border-indigo-500/20 text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400 tile-3d holo-sheen">
               <Sparkles className="size-4 animate-pulse" /> Neural ATS Analysis Engine
             </div>
             <h1 className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.8] mb-8 uppercase italic">
@@ -69,8 +72,13 @@ export const LandingPage = () => {
             className="mt-32 relative max-w-5xl mx-auto scene-3d"
           >
             <div className="absolute -inset-4 bg-indigo-500/20 rounded-[48px] blur-3xl opacity-30 animate-pulse" />
-            <div className="relative glass p-4 md:p-10 rounded-[64px] border-white/10 shadow-3xl overflow-hidden panel-3d">
+            <div className="relative glass p-4 md:p-10 rounded-[64px] border-white/10 shadow-3xl overflow-hidden panel-3d holo-sheen">
                <div className="aspect-[16/9] bg-[#0a0514]/40 rounded-[40px] overflow-hidden flex items-center justify-center border border-white/5 glass-light relative">
+                  <div className="absolute -right-8 -top-8 hidden md:block layer-stack-3d opacity-60 pointer-events-none">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
                   {/* Mock Analysis Dashboard */}
                   <div className="absolute inset-0 grid grid-cols-1 md:grid-cols-3 gap-10 p-12 lg:p-20">
                      <div className="col-span-2 space-y-10">

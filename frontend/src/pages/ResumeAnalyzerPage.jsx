@@ -97,8 +97,14 @@ export const ResumeAnalyzerPage = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-12 pb-20">
-      <div className="text-center space-y-4">
+    <div className="max-w-5xl mx-auto space-y-12 pb-20 scene-3d">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.35 }}
+        transition={{ duration: 0.65 }}
+        className="text-center space-y-4 reveal-3d"
+      >
         <motion.div
            initial={{ opacity: 0, scale: 0.8 }}
            animate={{ opacity: 1, scale: 1 }}
@@ -112,7 +118,7 @@ export const ResumeAnalyzerPage = () => {
         <p className="text-slate-400 text-lg max-w-2xl mx-auto font-medium">
           Deep structural analysis to bypass automated filters and reach human recruiters.
         </p>
-      </div>
+      </motion.div>
 
       {!result ? (
         <motion.div 
@@ -123,13 +129,13 @@ export const ResumeAnalyzerPage = () => {
           <div 
             {...getRootProps()} 
             className={`
-              relative group cursor-pointer border-2 border-dashed rounded-[40px] p-20 transition-all duration-700 glass-light
+              relative group cursor-pointer border-2 border-dashed rounded-[40px] p-20 transition-all duration-700 glass-light upload-glow-3d holo-sheen
               ${isDragActive ? 'border-indigo-500 bg-indigo-500/5' : 'border-white/10 hover:border-indigo-500/40'}
             `}
           >
             <input {...getInputProps()} />
             <div className="flex flex-col items-center justify-center text-center space-y-8">
-              <div className="size-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-2xl">
+              <div className="size-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-2xl logo-3d">
                 {isUploading ? (
                   <Loader2 className="size-12 text-indigo-500 animate-spin" />
                 ) : file ? (
@@ -154,7 +160,7 @@ export const ResumeAnalyzerPage = () => {
               onClick={handleAnalyze}
               disabled={!file || isAnalyzing}
               className={`
-                px-14 py-6 rounded-2xl font-black text-xl uppercase tracking-widest transition-all relative overflow-hidden
+                px-14 py-6 rounded-2xl font-black text-xl uppercase tracking-widest transition-all relative overflow-hidden button-3d
                 ${!file || isAnalyzing 
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5' 
                   : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-2xl shadow-indigo-500/40 active:scale-95 border border-indigo-400'}
@@ -169,22 +175,24 @@ export const ResumeAnalyzerPage = () => {
           </div>
         </motion.div>
       ) : (
-        <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-12"
+        <motion.div
+            initial={{ opacity: 0, y: 26 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-12 reveal-3d"
         >
           {/* Analysis Results View */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 space-y-8">
                 {/* Score Card */}
-                <div className="p-12 rounded-[40px] glass flex flex-col items-center justify-center space-y-8 relative overflow-hidden">
+                <div className="p-12 rounded-[40px] glass flex flex-col items-center justify-center space-y-8 relative overflow-hidden panel-3d holo-sheen">
                     <div className="absolute top-0 right-0 p-8 opacity-5">
                        <BarChart3 className="size-40" />
                     </div>
-                    <div className="relative w-48 h-48">
+                    <div className="relative w-48 h-48 ring-3d">
+                        <div className="absolute inset-5 rounded-full bg-cyan-400/10 blur-2xl" />
                         <svg className="w-full h-full" viewBox="0 0 36 36">
                             <circle cx="18" cy="18" r="16" fill="none" stroke="#1e1b4b" strokeWidth="3" />
+                            <circle cx="18" cy="18" r="12" fill="none" stroke="rgba(34,211,238,0.16)" strokeWidth="1" strokeDasharray="5 3" />
                             <circle 
                                 cx="18" cy="18" r="16" fill="none" 
                                 stroke={result.atsScore > 80 ? '#10b981' : result.atsScore > 70 ? '#6366f1' : '#f59e0b'}
@@ -210,7 +218,7 @@ export const ResumeAnalyzerPage = () => {
                 </div>
 
                 {/* Match Metrics */}
-                <div className="p-8 rounded-[40px] glass-light space-y-6">
+                <div className="p-8 rounded-[40px] glass-light space-y-6 tile-3d">
                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-6 flex items-center gap-2">
                         <Target className="size-4 text-indigo-400" /> Match Metrics
                     </h3>
@@ -240,7 +248,7 @@ export const ResumeAnalyzerPage = () => {
             <div className="lg:col-span-2 space-y-8">
                 {/* Critical Highlights */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-10 rounded-[40px] glass-light border-emerald-500/10 space-y-8">
+                    <div className="p-10 rounded-[40px] glass-light border-emerald-500/10 space-y-8 tile-3d">
                         <h3 className="font-black text-emerald-400 flex items-center gap-2 uppercase tracking-widest text-xs italic">
                            <CheckCircle2 className="size-4" /> Strong Aspects
                         </h3>
@@ -253,7 +261,7 @@ export const ResumeAnalyzerPage = () => {
                             ))}
                         </ul>
                     </div>
-                    <div className="p-10 rounded-[40px] glass-light border-red-500/10 space-y-8">
+                    <div className="p-10 rounded-[40px] glass-light border-red-500/10 space-y-8 tile-3d">
                         <h3 className="font-black text-red-400 flex items-center gap-2 uppercase tracking-widest text-xs italic">
                            <AlertCircle className="size-4" /> Gaps Identified
                         </h3>
@@ -269,14 +277,14 @@ export const ResumeAnalyzerPage = () => {
                 </div>
 
                 {/* Keyword Analysis */}
-                <div className="p-10 rounded-[40px] glass space-y-10">
+                <div className="p-10 rounded-[40px] glass space-y-10 panel-3d holo-sheen">
                     <div className="flex items-center justify-between">
                         <h3 className="text-xl font-bold tracking-tight">Critical Keywords Analysis</h3>
                         <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Add these to boost score</span>
                     </div>
                     <div className="flex flex-wrap gap-3">
                         {result.missingKeywords.map((k, i) => (
-                            <span key={i} className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-slate-300 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all cursor-default">
+                            <span key={i} className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-slate-300 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all cursor-default tile-3d">
                                 + {k}
                             </span>
                         ))}
@@ -284,13 +292,13 @@ export const ResumeAnalyzerPage = () => {
                 </div>
 
                 {/* Structure Analysis */}
-                <div className="p-10 rounded-[40px] bg-gradient-to-br from-indigo-600/10 to-purple-600/10 border border-white/10 space-y-8 shadow-2xl">
+                <div className="p-10 rounded-[40px] bg-gradient-to-br from-indigo-600/10 to-purple-600/10 border border-white/10 space-y-8 shadow-2xl panel-3d">
                     <h3 className="text-xl font-bold flex items-center gap-3">
                         <FileText className="size-6 text-indigo-400" /> Structure & Formatting
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {result.formattingTips.map((tip, i) => (
-                            <div key={i} className="flex gap-4 items-start p-5 glass rounded-2xl border-white/5 hover:border-white/10 transition-all group">
+                            <div key={i} className="flex gap-4 items-start p-5 glass rounded-2xl border-white/5 hover:border-white/10 transition-all group tile-3d">
                                 <ArrowRight className="size-4 text-indigo-400 mt-1 shrink-0 group-hover:translate-x-1 transition-transform" />
                                 <span className="text-xs font-bold text-slate-300 leading-relaxed">{tip}</span>
                             </div>

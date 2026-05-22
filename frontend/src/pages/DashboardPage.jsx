@@ -184,7 +184,6 @@ export const DashboardPage = () => {
 
   return (
     <div className="space-y-8 pb-12 scene-3d relative overflow-hidden">
-      <div className="absolute -right-12 top-8 hidden xl:block wire-cube-3d opacity-25 pointer-events-none" />
       <div className="absolute left-1/3 top-28 hidden xl:block layer-stack-3d opacity-25 pointer-events-none">
         <span />
         <span />

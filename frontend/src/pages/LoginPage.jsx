@@ -104,13 +104,6 @@ export const LoginPage = () => {
   return (
     <div className="min-h-screen bg-[#0a0514] text-slate-100 flex items-center justify-center p-6 scene-3d overflow-hidden">
       <div className="absolute inset-x-0 bottom-0 h-72 depth-grid pointer-events-none" />
-      <div className="absolute left-[8%] top-[17%] hidden lg:block prism-3d opacity-70 pointer-events-none" />
-      <div className="absolute right-[12%] bottom-[18%] hidden lg:block wire-cube-3d opacity-60 pointer-events-none" />
-      <div className="absolute left-[14%] bottom-[22%] hidden xl:block layer-stack-3d opacity-55 pointer-events-none">
-        <span />
-        <span />
-        <span />
-      </div>
       <div className="absolute top-0 right-0 w-[560px] h-[560px] bg-indigo-600/10 rounded-full blur-[110px] pointer-events-none" />
       <div
         className="w-full max-w-md p-8 rounded-[32px] glass border border-white/10 relative z-10 card-3d float-3d holo-sheen"

@@ -168,6 +168,21 @@ export const ResumeBuilderPage = () => {
     return tips.slice(0, 4);
   }, [data]);
 
+  const floatingPreviewSkills = useMemo(() => {
+    const skills = [
+      data.technicalSkills.programmingLanguages,
+      data.technicalSkills.frameworks,
+      data.technicalSkills.databases,
+      data.technicalSkills.tools,
+      ...data.softSkills,
+    ]
+      .flatMap((item) => String(item || "").split(/[,/|]/))
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    return (skills.length ? skills : ["ATS", "AI", "React", "Leadership", "MongoDB", "PDF"]).slice(0, 7);
+  }, [data.technicalSkills, data.softSkills]);
+
   const cycleFramework = () => {
     const idx = FRAMEWORKS.findIndex((f) => f.key === visualFramework);
     setVisualFramework(FRAMEWORKS[(idx + 1) % FRAMEWORKS.length].key);
@@ -840,17 +855,31 @@ export const ResumeBuilderPage = () => {
               </SectionCard>
             </div>
           ) : (
-            <div
-              id="resume-print-root"
-              className={`p-16 rounded-[48px] text-black min-h-[900px] shadow-3xl relative overflow-hidden flex flex-col ${
-                visualFramework === "executive"
-                  ? "bg-[#f7f6f2]"
-                  : visualFramework === "clean"
-                    ? "bg-[#fcfcfd]"
-                    : "bg-white"
-              }`}
-              style={currentTypography.style}
-            >
+            <div className="relative scene-3d">
+              {floatingPreviewSkills.map((skill, index) => (
+                <span
+                  key={`${skill}-${index}`}
+                  className="absolute z-20 hidden rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-cyan-100 backdrop-blur-xl skill-orbit lg:inline-flex"
+                  style={{
+                    left: index % 2 === 0 ? "-4%" : "76%",
+                    top: `${9 + index * 11}%`,
+                  }}
+                >
+                  {skill}
+                </span>
+              ))}
+              <div className="absolute -inset-6 rounded-[52px] bg-cyan-400/10 blur-3xl" />
+              <div
+                id="resume-print-root"
+                className={`p-16 rounded-[48px] text-black min-h-[900px] shadow-3xl relative overflow-hidden flex flex-col resume-float-card holo-sheen ${
+                  visualFramework === "executive"
+                    ? "bg-[#f7f6f2]"
+                    : visualFramework === "clean"
+                      ? "bg-[#fcfcfd]"
+                      : "bg-white"
+                }`}
+                style={currentTypography.style}
+              >
               <header
                 className={`pb-8 mb-8 ${
                   visualFramework === "executive"
@@ -974,6 +1003,7 @@ export const ResumeBuilderPage = () => {
                   <ChipList items={data.languagesKnown} />
                 </PreviewSection>
               </div>
+              </div>
             </div>
           )}
         </div>
@@ -994,7 +1024,7 @@ export const ResumeBuilderPage = () => {
           )}
 
           <div
-            className={`p-10 rounded-[40px] glass space-y-10 ${
+            className={`p-10 rounded-[40px] glass space-y-10 panel-3d ${
               assistantOpen ? "" : "sticky top-24"
             }`}
           >

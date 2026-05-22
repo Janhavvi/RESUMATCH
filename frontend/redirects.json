@@ -1,0 +1,14 @@
+[
+  {
+    "source": "</^[^.]+$|.(?!js$|css$|gif$|jpg$|jpeg$|png$|svg$|woff$|woff2$|ttf$|eot$|otf$)$/",
+    "target": "/index.html",
+    "status": "200",
+    "condition": null
+  },
+  {
+    "source": "/<|^.+w+$|^.+..+$",
+    "target": "/index.html",
+    "status": "404",
+    "condition": null
+  }
+]

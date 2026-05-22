@@ -1,26 +1,18 @@
 version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - npm ci --prefix frontend
-    build:
-      commands:
-        - npm --prefix frontend run build
-  artifacts:
-    baseDirectory: frontend/dist
-    files:
-      - '**/*'
-  cache:
-    paths:
-      - 'frontend/node_modules/**/*'
-
-redirects:
-  - source: '</^[^.]+$|.(?!js$|css$|gif$|jpg$|jpeg$|png$|svg$|woff$|woff2$|ttf$|eot$|otf$)$/>'
-    target: /index.html
-    status: 200
-    queryParameters: {}
-  - source: '</^[^.]+$|.(?!js$|css$|gif$|jpg$|jpeg$|png$|svg$|woff$|woff2$|ttf$|eot$|otf$)$/>'
-    target: /index.html
-    status: 404
-    queryParameters: {}
+applications:
+  - appRoot: frontend
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - 'node_modules/**/*'

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import { Rocket, Loader2 } from "lucide-react";
-import { apiFetch, apiUrl } from "../lib/api.js";
+import { apiFetch } from "../lib/api.js";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -11,60 +12,12 @@ export const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
-  const [googleEnabled, setGoogleEnabled] = useState(Boolean(googleClientId));
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    const encodedUser = params.get("user");
-    const oauthError = params.get("error");
-
-    if (token) {
-      localStorage.setItem("token", token);
-      if (encodedUser) {
-        try {
-          const user = JSON.parse(atob(encodedUser.replace(/-/g, "+").replace(/_/g, "/")));
-          localStorage.setItem("user", JSON.stringify(user));
-        } catch {
-          localStorage.removeItem("user");
-        }
-      }
-      window.history.replaceState({}, "", "/login");
-      navigate("/dashboard");
-      return;
-    }
-
-    if (oauthError) {
-      setError(oauthError);
-      window.history.replaceState({}, "", "/login");
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    let active = true;
-    const loadConfig = async () => {
-      try {
-        const res = await apiFetch("/api/auth/google/config");
-        const data = await res.json().catch(() => ({}));
-        if (!active) return;
-        
-        if (data?.enabled) {
-          setGoogleEnabled(true);
-        } else {
-          setGoogleEnabled(Boolean(googleClientId));
-          console.debug("Google OAuth not configured on server");
-        }
-      } catch (err) {
-        if (!active) return;
-        setGoogleEnabled(Boolean(googleClientId));
-        console.debug("Failed to load Google OAuth config:", err.message);
-      }
-    };
-    loadConfig();
-    return () => {
-      active = false;
-    };
+    if (!googleClientId) return;
+    apiFetch("/api/auth/google/config").catch(() => {});
   }, [googleClientId]);
 
   const submit = async (e) => {
@@ -96,6 +49,44 @@ export const LoginPage = () => {
       setError(err.message || "Authentication failed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const signInWithGoogle = async (credential) => {
+    setGoogleLoading(true);
+    setError("");
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+
+    try {
+      if (!credential) {
+        throw new Error("Google did not return a credential. Please try again.");
+      }
+
+      const res = await apiFetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+        signal: controller.signal,
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || "Google authentication failed");
+      }
+
+      if (data?.token) localStorage.setItem("token", data.token);
+      if (data?.user) localStorage.setItem("user", JSON.stringify(data.user));
+      navigate("/dashboard");
+    } catch (err) {
+      if (err.name === "AbortError") {
+        setError("Google sign-in is taking too long. Please try again.");
+      } else {
+        setError(err.message || "Google authentication failed");
+      }
+    } finally {
+      window.clearTimeout(timeoutId);
+      setGoogleLoading(false);
     }
   };
 
@@ -166,7 +157,7 @@ export const LoginPage = () => {
             )}
           </button>
 
-          {googleEnabled ? (
+          {googleClientId ? (
             <>
               <div className="relative py-1">
                 <div className="h-px bg-white/10" />
@@ -176,15 +167,19 @@ export const LoginPage = () => {
               </div>
 
               <div className="min-h-12 flex justify-center items-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.location.href = apiUrl("/api/auth/google/start");
-                  }}
-                  className="w-full h-11 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-bold transition-all"
-                >
-                  Continue with Google
-                </button>
+                {googleLoading ? (
+                  <div className="w-full h-11 rounded-xl bg-white/90 text-slate-900 font-bold flex items-center justify-center gap-2">
+                    <Loader2 className="size-4 animate-spin" /> Connecting
+                  </div>
+                ) : (
+                  <GoogleLogin
+                    width="478"
+                    text="continue_with"
+                    shape="rectangular"
+                    onSuccess={(response) => signInWithGoogle(response.credential)}
+                    onError={() => setError("Google sign-in failed. Please try again.")}
+                  />
+                )}
               </div>
             </>
           ) : null}

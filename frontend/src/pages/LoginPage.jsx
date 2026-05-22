@@ -91,11 +91,12 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0514] text-slate-100 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#0a0514] text-slate-100 flex items-center justify-center p-6 scene-3d overflow-hidden">
+      <div className="absolute inset-x-0 bottom-0 h-72 depth-grid pointer-events-none" />
       <div className="absolute top-0 right-0 w-[560px] h-[560px] bg-indigo-600/10 rounded-full blur-[110px] pointer-events-none" />
-      <div className="w-full max-w-md p-8 rounded-[32px] glass border border-white/10 relative z-10">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="size-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+      <div className="w-full max-w-md p-8 rounded-[32px] glass border border-white/10 relative z-10 card-3d float-3d">
+        <div className="flex items-center gap-3 mb-8 lift-3d">
+          <div className="size-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center logo-3d">
             <Rocket className="size-6 text-white" />
           </div>
           <div>
@@ -106,7 +107,7 @@ export const LoginPage = () => {
           </div>
         </div>
 
-        <form onSubmit={submit} className="space-y-5">
+        <form onSubmit={submit} className="space-y-5 lift-3d">
           {mode === "register" && (
             <Field
               label="Full Name"
@@ -144,7 +145,7 @@ export const LoginPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold tracking-wide transition-all flex items-center justify-center gap-2"
+            className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold tracking-wide transition-all flex items-center justify-center gap-2 button-3d"
           >
             {loading ? (
               <>
@@ -168,7 +169,7 @@ export const LoginPage = () => {
 
               <div className="min-h-12 flex justify-center items-center">
                 {googleLoading ? (
-                  <div className="w-full h-11 rounded-xl bg-white/90 text-slate-900 font-bold flex items-center justify-center gap-2">
+                  <div className="w-full h-11 rounded-xl bg-white/90 text-slate-900 font-bold flex items-center justify-center gap-2 field-3d">
                     <Loader2 className="size-4 animate-spin" /> Connecting
                   </div>
                 ) : (
@@ -185,7 +186,7 @@ export const LoginPage = () => {
           ) : null}
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-400">
+        <div className="mt-6 text-center text-sm text-slate-400 lift-3d">
           {mode === "login" ? "No account yet?" : "Already have an account?"}{" "}
           <button
             onClick={() => {
@@ -198,7 +199,7 @@ export const LoginPage = () => {
           </button>
         </div>
 
-        <div className="mt-4 text-center">
+        <div className="mt-4 text-center lift-3d">
           <Link to="/" className="text-xs uppercase tracking-widest text-slate-500 hover:text-slate-300">
             Back to Home
           </Link>
@@ -221,7 +222,7 @@ const Field = ({ label, value, onChange, type = "text", placeholder, required })
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       required={required}
-      className="w-full h-12 rounded-xl bg-black/40 border border-white/10 px-4 text-sm focus:border-indigo-500 outline-none transition-colors"
+      className="w-full h-12 rounded-xl bg-black/40 border border-white/10 px-4 text-sm focus:border-indigo-500 outline-none transition-colors field-3d"
     />
   </label>
 );

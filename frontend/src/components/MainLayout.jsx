@@ -19,7 +19,8 @@ export const MainLayout = ({ children }) => {
   });
   const location = useLocation();
   const navigate = useNavigate();
-  const isPublicRoute = location.pathname === '/' || location.pathname === '/login';
+  const normalizedPath = location.pathname.replace(/\/+$/, '') || '/';
+  const isPublicRoute = normalizedPath === '/' || normalizedPath === '/login';
 
   useEffect(() => {
     const loadProfile = async () => {

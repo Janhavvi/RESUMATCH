@@ -5,7 +5,7 @@ import { Rocket, Shield, Target, FileText, CheckCircle2, ChevronRight, Star, Spa
 
 export const LandingPage = () => {
   return (
-    <div className="min-h-screen bg-[#0a0514] text-slate-100 selection:bg-indigo-500/30 font-sans overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#0a0514] text-slate-100 selection:bg-indigo-500/30 font-sans overflow-x-hidden relative scene-3d">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-600/10 rounded-full blur-[120px] -mr-96 -mt-96 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[100px] -ml-72 -mb-72 pointer-events-none" />
@@ -26,7 +26,7 @@ export const LandingPage = () => {
           </div>
           <div className="flex items-center gap-6">
             <Link to="/login" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Login</Link>
-            <Link to="/builder" className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 border border-indigo-400">
+            <Link to="/builder" className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 border border-indigo-400 button-3d">
               Get Started
             </Link>
           </div>
@@ -53,10 +53,10 @@ export const LandingPage = () => {
               Industry-standard AI intelligence platform for professional resume auditing and strategic career alignment.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
-              <Link to="/analyzer" className="w-full sm:w-auto bg-slate-100 text-black px-12 py-6 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-3xl">
+              <Link to="/analyzer" className="w-full sm:w-auto bg-slate-100 text-black px-12 py-6 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-3xl button-3d">
                 Initialize Audit <ChevronRight className="size-5" />
               </Link>
-              <Link to="/builder" className="w-full sm:w-auto glass-light border border-white/10 px-12 py-6 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white/10 transition-all text-white">
+              <Link to="/builder" className="w-full sm:w-auto glass-light border border-white/10 px-12 py-6 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white/10 transition-all text-white tile-3d">
                 Build Prototype
               </Link>
             </div>
@@ -66,10 +66,10 @@ export const LandingPage = () => {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 1 }}
-            className="mt-32 relative max-w-5xl mx-auto"
+            className="mt-32 relative max-w-5xl mx-auto scene-3d"
           >
             <div className="absolute -inset-4 bg-indigo-500/20 rounded-[48px] blur-3xl opacity-30 animate-pulse" />
-            <div className="relative glass p-4 md:p-10 rounded-[64px] border-white/10 shadow-3xl overflow-hidden">
+            <div className="relative glass p-4 md:p-10 rounded-[64px] border-white/10 shadow-3xl overflow-hidden panel-3d">
                <div className="aspect-[16/9] bg-[#0a0514]/40 rounded-[40px] overflow-hidden flex items-center justify-center border border-white/5 glass-light relative">
                   {/* Mock Analysis Dashboard */}
                   <div className="absolute inset-0 grid grid-cols-1 md:grid-cols-3 gap-10 p-12 lg:p-20">
@@ -79,7 +79,7 @@ export const LandingPage = () => {
                            <div className="h-2 bg-white/5 rounded-full w-1/2" />
                         </div>
                         <div className="grid grid-cols-2 gap-8">
-                           <div className="p-8 glass rounded-[40px] border-white/10 flex flex-col items-center justify-center space-y-4 group">
+                           <div className="p-8 glass rounded-[40px] border-white/10 flex flex-col items-center justify-center space-y-4 group tile-3d">
                                <div className="size-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center transition-transform group-hover:scale-110">
                                    <Target className="size-8 text-indigo-400" />
                                </div>
@@ -88,7 +88,7 @@ export const LandingPage = () => {
                                   <p className="font-bold text-slate-200">92% Match</p>
                                </div>
                            </div>
-                           <div className="p-8 glass rounded-[40px] border-white/10 flex flex-col items-center justify-center space-y-4 group">
+                           <div className="p-8 glass rounded-[40px] border-white/10 flex flex-col items-center justify-center space-y-4 group tile-3d">
                                <div className="size-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center transition-transform group-hover:scale-110">
                                    <Sparkles className="size-8 text-purple-400" />
                                </div>
@@ -99,7 +99,7 @@ export const LandingPage = () => {
                            </div>
                         </div>
                      </div>
-                     <div className="flex flex-col items-center justify-center space-y-6 glass rounded-[48px] border-indigo-500/20 p-10 bg-indigo-500/5 relative">
+                     <div className="flex flex-col items-center justify-center space-y-6 glass rounded-[48px] border-indigo-500/20 p-10 bg-indigo-500/5 relative tile-3d">
                         <div className="absolute top-0 right-0 p-6 opacity-30">
                            <Shield className="size-8 text-indigo-400" />
                         </div>
@@ -148,7 +148,7 @@ export const LandingPage = () => {
                  { icon: Target, title: 'Contextual Fit', desc: 'Deep alignment analysis against target role descriptions.' },
                  { icon: FileText, title: 'Performance', desc: 'Bypass legacy filtering systems with optimized semantics.' },
                ].map((f, i) => (
-                 <div key={i} className="p-10 rounded-[40px] glass-light border-white/5 hover:border-indigo-500/20 transition-all group">
+                 <div key={i} className="p-10 rounded-[40px] glass-light border-white/5 hover:border-indigo-500/20 transition-all group tile-3d">
                     <div className="size-16 rounded-2xl bg-indigo-500/5 flex items-center justify-center mb-8 border border-white/5 group-hover:scale-110 transition-transform">
                        <f.icon className="size-8 text-indigo-400" />
                     </div>

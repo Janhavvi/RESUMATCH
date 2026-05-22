@@ -183,7 +183,7 @@ export const DashboardPage = () => {
   const goNewAudit = () => navigate("/analyzer");
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-8 pb-12 scene-3d">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-4xl font-bold tracking-tight mb-2">
@@ -198,14 +198,14 @@ export const DashboardPage = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowAllRows((v) => !v)}
-            className="bg-white/5 border border-white/10 text-slate-300 px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/10 transition-all flex items-center gap-2"
+            className="bg-white/5 border border-white/10 text-slate-300 px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/10 transition-all flex items-center gap-2 tile-3d"
           >
             <History className="size-4" />
             {showAllRows ? "Recent Only" : "History"}
           </button>
           <button
             onClick={goNewAudit}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2 button-3d"
           >
             <Plus className="size-4" /> New Audit
           </button>
@@ -258,7 +258,7 @@ export const DashboardPage = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08 }}
-            className="p-6 rounded-3xl glass-light group hover:border-indigo-500/30 transition-all relative overflow-hidden"
+            className="p-6 rounded-3xl glass-light group hover:border-indigo-500/30 transition-all relative overflow-hidden tile-3d"
           >
             <div className="relative z-10">
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
@@ -279,7 +279,7 @@ export const DashboardPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 p-8 rounded-[32px] glass flex flex-col">
+        <div className="lg:col-span-2 p-8 rounded-[32px] glass flex flex-col panel-3d">
           <div className="flex items-center justify-between mb-10">
             <div>
               <h3 className="text-xl font-bold mb-1 tracking-tight">Performance Trends</h3>
@@ -351,7 +351,7 @@ export const DashboardPage = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="p-8 rounded-[32px] bg-indigo-600 shadow-2xl shadow-indigo-500/40 relative overflow-hidden group">
+          <div className="p-8 rounded-[32px] bg-indigo-600 shadow-2xl shadow-indigo-500/40 relative overflow-hidden group tile-3d">
             <div className="absolute -right-8 -top-8 size-40 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000" />
             <h3 className="text-xl font-black mb-1 relative z-10 uppercase italic tracking-tighter">
               Optimize Now
@@ -361,7 +361,7 @@ export const DashboardPage = () => {
             </p>
             <button
               onClick={generateRewrite}
-              className="w-full bg-white text-indigo-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all relative z-10 shadow-lg flex items-center justify-center gap-2"
+              className="w-full bg-white text-indigo-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all relative z-10 shadow-lg flex items-center justify-center gap-2 button-3d"
             >
               <WandSparkles className="size-4" />
               Generate Rewrite
@@ -373,7 +373,7 @@ export const DashboardPage = () => {
             ) : null}
           </div>
 
-          <div className="p-8 rounded-[32px] glass-light space-y-6">
+          <div className="p-8 rounded-[32px] glass-light space-y-6 tile-3d">
             <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-slate-400">
               <AlertCircle className="size-4 text-amber-500" /> Analysis Alerts
             </h3>
@@ -382,7 +382,7 @@ export const DashboardPage = () => {
                 alerts.map((item, i) => (
                   <div
                     key={`${item}-${i}`}
-                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors"
+                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors tile-3d"
                   >
                     <div className="size-2 bg-amber-400 rounded-full shrink-0" />
                     <span className="text-xs font-bold text-slate-300">{item}</span>
@@ -398,7 +398,7 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      <div className="p-10 rounded-[40px] glass">
+      <div className="p-10 rounded-[40px] glass panel-3d">
         <div className="flex items-center justify-between mb-10">
           <div>
             <h3 className="text-2xl font-bold mb-1 tracking-tight">

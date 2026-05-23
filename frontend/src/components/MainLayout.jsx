@@ -70,17 +70,23 @@ export const MainLayout = ({ children }) => {
   if (isPublicRoute) return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-[#0a0514] text-slate-100 flex">
+    <div className="cyber-app-shell min-h-screen text-slate-100 flex">
+      <div className="cyber-app-grid" aria-hidden="true" />
+      <div className="cyber-app-circuit cyber-app-circuit-a" aria-hidden="true" />
+      <div className="cyber-app-circuit cyber-app-circuit-b" aria-hidden="true" />
+      <span className="cyber-app-node cyber-app-node-a" aria-hidden="true" />
+      <span className="cyber-app-node cyber-app-node-b" aria-hidden="true" />
+      <span className="cyber-app-node cyber-app-node-c" aria-hidden="true" />
       {/* Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-64 glass flex flex-col p-6 transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0`}
+        className={`cyber-sidebar fixed inset-y-0 left-0 z-50 w-64 glass flex flex-col p-6 transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0`}
       >
         <div className="h-full flex flex-col">
           <div className="flex items-center gap-3 mb-10">
-            <div className="size-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <div className="cyber-brand-mark size-10 rounded-xl flex items-center justify-center">
               <Rocket className="size-6 text-white" />
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 tracking-tight">RESUMATCH</span>
+            <span className="cyber-brand-text text-xl font-bold tracking-tight">RESUMATCH</span>
           </div>
 
           <nav className="flex-1 space-y-2">
@@ -93,24 +99,24 @@ export const MainLayout = ({ children }) => {
                   to={item.path}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
                     isActive 
-                      ? 'bg-white/10 border border-white/10 text-white shadow-inner' 
+                      ? 'cyber-nav-active text-white shadow-inner' 
                       : 'text-slate-400 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <Icon className={`size-5 ${isActive ? 'text-indigo-400' : 'group-hover:text-indigo-400'}`} />
+                  <Icon className={`size-5 ${isActive ? 'text-cyan-300' : 'group-hover:text-cyan-300'}`} />
                   <span className="font-medium">{item.name}</span>
                 </Link>
               );
             })}
           </nav>
 
-          <div className="mt-auto p-4 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-600/20 border border-white/10 mb-6">
-            <p className="text-xs font-semibold text-indigo-300 uppercase tracking-wider mb-2">Account</p>
+          <div className="cyber-account-card mt-auto p-4 rounded-2xl border mb-6">
+            <p className="text-xs font-semibold text-cyan-200 uppercase tracking-wider mb-2">Account</p>
             <p className="text-[11px] text-slate-400 mb-2">
               {profile.analyzedResumes} of {profile.totalResumes} resumes analyzed
             </p>
             <div className="h-1.5 w-full bg-black/30 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${usagePercent}%` }} />
+              <div className="cyber-progress h-full transition-all duration-500" style={{ width: `${usagePercent}%` }} />
             </div>
           </div>
 
@@ -125,8 +131,8 @@ export const MainLayout = ({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-0 overflow-y-auto h-screen bg-transparent">
-        <header className="h-20 flex items-center justify-between px-8 sticky top-0 z-40 bg-[#0a0514]/30 backdrop-blur-xl border-b border-white/5">
+      <main className="cyber-app-main flex-1 lg:ml-0 overflow-y-auto h-screen bg-transparent">
+        <header className="cyber-app-header h-20 flex items-center justify-between px-8 sticky top-0 z-40">
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors"
@@ -138,13 +144,13 @@ export const MainLayout = ({ children }) => {
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium">{profile.name}</p>
             </div>
-            <div className="size-11 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 border-2 border-white/20 shadow-lg flex items-center justify-center font-bold text-white">
+            <div className="cyber-avatar size-11 rounded-full border-2 flex items-center justify-center font-bold text-white">
               {initials}
             </div>
           </div>
         </header>
 
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="cyber-app-content p-8 max-w-7xl mx-auto">
           {children}
         </div>
       </main>

@@ -304,6 +304,1010 @@
   50% { transform: translate3d(0, -10px, 70px); }
 }
 
+.cyber-login-page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 24px;
+  color: #dff6ff;
+  background:
+    radial-gradient(circle at 50% 42%, rgb(0 191 255 / 0.22), transparent 24%),
+    radial-gradient(circle at 20% 18%, rgb(0 229 255 / 0.13), transparent 18%),
+    radial-gradient(circle at 86% 70%, rgb(0 119 255 / 0.18), transparent 22%),
+    linear-gradient(135deg, #030512 0%, #050816 46%, #061a38 100%);
+  isolation: isolate;
+}
+
+.cyber-grid,
+.cyber-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cyber-grid {
+  background-image:
+    linear-gradient(rgb(0 229 255 / 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 229 255 / 0.055) 1px, transparent 1px);
+  background-size: 52px 52px;
+  transform: perspective(900px) rotateX(64deg) translateY(18%);
+  transform-origin: bottom;
+  opacity: 0.44;
+  mask-image: linear-gradient(to top, rgb(0 0 0 / 0.64), transparent 72%);
+}
+
+.cyber-vignette {
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 0.52), transparent 24%, transparent 76%, rgb(0 0 0 / 0.52)),
+    radial-gradient(circle at center, transparent 34%, rgb(0 0 0 / 0.48));
+  z-index: 1;
+}
+
+.cyber-circuit {
+  position: absolute;
+  inset: 7%;
+  z-index: 2;
+  border: 1px solid rgb(0 229 255 / 0.48);
+  clip-path: polygon(8% 0, 92% 0, 100% 12%, 100% 32%, 94% 32%, 94% 18%, 86% 7%, 14% 7%, 6% 18%, 6% 82%, 14% 93%, 86% 93%, 94% 82%, 94% 68%, 100% 68%, 100% 88%, 92% 100%, 8% 100%, 0 88%, 0 12%);
+  box-shadow:
+    0 0 18px rgb(0 229 255 / 0.3),
+    0 0 54px rgb(0 191 255 / 0.16),
+    inset 0 0 24px rgb(0 229 255 / 0.08);
+  opacity: 0.76;
+  animation: cyber-circuit-pulse 4.6s ease-in-out infinite;
+}
+
+.cyber-circuit-middle {
+  inset: 13%;
+  opacity: 0.42;
+  animation-delay: -1.2s;
+}
+
+.cyber-circuit-inner {
+  inset: 22%;
+  opacity: 0.28;
+  animation-delay: -2.4s;
+}
+
+.cyber-trace {
+  position: absolute;
+  z-index: 3;
+  width: min(31vw, 430px);
+  height: 120px;
+  border-color: rgb(0 229 255 / 0.72);
+  border-style: solid;
+  filter: drop-shadow(0 0 12px rgb(0 229 255 / 0.55));
+  opacity: 0.78;
+}
+
+.cyber-trace::after {
+  content: "";
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #dff6ff;
+  box-shadow:
+    0 0 10px #dff6ff,
+    0 0 28px #00bfff,
+    0 0 58px #00e5ff;
+  animation: cyber-node-pulse 2.8s ease-in-out infinite;
+}
+
+.cyber-trace-top-left {
+  left: 7%;
+  top: 9%;
+  border-width: 2px 0 0 2px;
+  clip-path: polygon(0 0, 74% 0, 100% 42%, 100% 48%, 72% 10%, 0 10%);
+}
+
+.cyber-trace-top-left::after {
+  left: -5px;
+  top: -6px;
+}
+
+.cyber-trace-top-right {
+  right: 7%;
+  top: 10%;
+  border-width: 2px 2px 0 0;
+  clip-path: polygon(26% 0, 100% 0, 100% 10%, 28% 10%, 0 48%, 0 42%);
+}
+
+.cyber-trace-top-right::after {
+  right: -5px;
+  top: -6px;
+  animation-delay: -0.7s;
+}
+
+.cyber-trace-bottom-left {
+  left: 6%;
+  bottom: 10%;
+  border-width: 0 0 2px 2px;
+  clip-path: polygon(0 90%, 70% 90%, 100% 50%, 100% 58%, 72% 100%, 0 100%);
+}
+
+.cyber-trace-bottom-left::after {
+  left: -5px;
+  bottom: -6px;
+  animation-delay: -1.4s;
+}
+
+.cyber-trace-bottom-right {
+  right: 6%;
+  bottom: 9%;
+  border-width: 0 2px 2px 0;
+  clip-path: polygon(30% 90%, 100% 90%, 100% 100%, 28% 100%, 0 58%, 0 50%);
+}
+
+.cyber-trace-bottom-right::after {
+  right: -5px;
+  bottom: -6px;
+  animation-delay: -2s;
+}
+
+.cyber-particle {
+  position: absolute;
+  left: var(--particle-left);
+  top: var(--particle-top);
+  z-index: 4;
+  width: var(--particle-size);
+  height: var(--particle-size);
+  border-radius: 999px;
+  background: #dff6ff;
+  box-shadow: 0 0 14px rgb(0 229 255 / 0.86);
+  opacity: 0;
+  animation: cyber-particle-float 5.8s ease-in-out var(--particle-delay) infinite;
+}
+
+.cyber-node {
+  position: absolute;
+  left: var(--node-left);
+  top: var(--node-top);
+  z-index: 4;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #00e5ff;
+  box-shadow:
+    0 0 10px #00e5ff,
+    0 0 30px rgb(0 191 255 / 0.7);
+  animation: cyber-node-pulse 3.4s ease-in-out infinite;
+}
+
+.cyber-node::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 96px;
+  height: 1px;
+  background: linear-gradient(90deg, rgb(0 229 255 / 0.6), transparent);
+  transform: rotate(22deg);
+  transform-origin: left;
+}
+
+.cyber-login-panel {
+  position: relative;
+  z-index: 10;
+  width: min(100%, 430px);
+  padding: 34px;
+  border: 1px solid rgb(0 229 255 / 0.42);
+  border-radius: 28px;
+  background:
+    linear-gradient(145deg, rgb(223 246 255 / 0.09), transparent 32%),
+    rgb(3 8 26 / 0.72);
+  backdrop-filter: blur(22px);
+  box-shadow:
+    0 0 0 1px rgb(223 246 255 / 0.08) inset,
+    0 0 36px rgb(0 229 255 / 0.22),
+    0 34px 90px rgb(0 0 0 / 0.54);
+  animation: cyber-panel-pulse 4.2s ease-in-out infinite;
+  max-height: calc(100svh - 48px);
+}
+
+.cyber-login-panel-signup {
+  width: min(100%, 414px);
+  padding: 24px 30px 22px;
+}
+
+.cyber-login-panel::before,
+.cyber-login-panel::after {
+  content: "";
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  pointer-events: none;
+  border-color: #00e5ff;
+  filter: drop-shadow(0 0 10px rgb(0 229 255 / 0.72));
+}
+
+.cyber-login-panel::before {
+  left: 16px;
+  top: 16px;
+  border-left: 2px solid;
+  border-top: 2px solid;
+  border-top-left-radius: 16px;
+}
+
+.cyber-login-panel::after {
+  right: 16px;
+  bottom: 16px;
+  border-right: 2px solid;
+  border-bottom: 2px solid;
+  border-bottom-right-radius: 16px;
+}
+
+.cyber-panel-border {
+  position: absolute;
+  inset: -13px;
+  border: 1px solid rgb(0 229 255 / 0.28);
+  border-radius: 34px;
+  clip-path: polygon(10% 0, 90% 0, 100% 13%, 100% 87%, 90% 100%, 10% 100%, 0 87%, 0 13%);
+  pointer-events: none;
+}
+
+.cyber-panel-border-b {
+  inset: -25px;
+  opacity: 0.28;
+  animation: cyber-border-drift 6s ease-in-out infinite;
+}
+
+.cyber-panel-scan {
+  position: absolute;
+  inset: 10px;
+  border-radius: 22px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cyber-panel-scan::before {
+  content: "";
+  position: absolute;
+  inset: -70% -20%;
+  background: linear-gradient(115deg, transparent 42%, rgb(223 246 255 / 0.18), transparent 58%);
+  animation: cyber-scan 5.2s ease-in-out infinite;
+}
+
+.cyber-panel-header {
+  position: relative;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.cyber-login-panel-signup .cyber-panel-header {
+  margin-bottom: 16px;
+}
+
+.cyber-panel-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: #00e5ff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.cyber-panel-header h1 {
+  margin: 0;
+  color: #dff6ff;
+  font-size: clamp(30px, 6vw, 42px);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-shadow:
+    0 0 12px rgb(0 229 255 / 0.58),
+    0 0 34px rgb(0 191 255 / 0.3);
+}
+
+.cyber-login-panel-signup .cyber-panel-header h1 {
+  font-size: clamp(28px, 5vw, 34px);
+  letter-spacing: 0.13em;
+}
+
+.cyber-panel-header p {
+  margin: 8px 0 0;
+  color: rgb(223 246 255 / 0.66);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.cyber-login-panel-signup .cyber-panel-header p {
+  margin-top: 4px;
+  font-size: 9px;
+}
+
+.cyber-login-form {
+  position: relative;
+  display: grid;
+  gap: 18px;
+}
+
+.cyber-login-panel-signup .cyber-login-form {
+  gap: 11px;
+}
+
+.cyber-field {
+  display: grid;
+  gap: 8px;
+}
+
+.cyber-login-panel-signup .cyber-field {
+  gap: 5px;
+}
+
+.cyber-field > span {
+  color: rgb(223 246 255 / 0.72);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.cyber-field-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 52px;
+  border: 1px solid rgb(0 191 255 / 0.26);
+  border-radius: 14px;
+  background: rgb(1 5 18 / 0.72);
+  box-shadow:
+    0 0 0 1px rgb(223 246 255 / 0.04) inset,
+    0 14px 30px rgb(0 0 0 / 0.24);
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.cyber-login-panel-signup .cyber-field-shell {
+  height: 45px;
+  border-radius: 12px;
+}
+
+.cyber-field-shell:focus-within {
+  border-color: rgb(0 229 255 / 0.92);
+  box-shadow:
+    0 0 0 1px rgb(0 229 255 / 0.25) inset,
+    0 0 22px rgb(0 229 255 / 0.28),
+    0 18px 38px rgb(0 0 0 / 0.34);
+  transform: translateY(-1px);
+}
+
+.cyber-field-icon {
+  width: 18px;
+  height: 18px;
+  margin-left: 16px;
+  color: #00e5ff;
+  filter: drop-shadow(0 0 8px rgb(0 229 255 / 0.62));
+}
+
+.cyber-field input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  padding: 0 16px 0 12px;
+  color: #dff6ff;
+  font: inherit;
+  font-weight: 700;
+  background: transparent;
+}
+
+.cyber-field input::placeholder {
+  color: rgb(223 246 255 / 0.42);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.cyber-field-shell:focus-within input::placeholder {
+  opacity: 0.2;
+}
+
+.cyber-error {
+  border: 1px solid rgb(248 113 113 / 0.42);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #fecaca;
+  background: rgb(127 29 29 / 0.22);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cyber-login-button {
+  position: relative;
+  height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
+  border: 1px solid rgb(223 246 255 / 0.24);
+  border-radius: 15px;
+  overflow: hidden;
+  color: #04111d;
+  background: linear-gradient(90deg, #00e5ff, #00bfff 50%, #dff6ff);
+  box-shadow:
+    0 0 24px rgb(0 229 255 / 0.55),
+    0 18px 38px rgb(0 191 255 / 0.18),
+    0 3px 0 rgb(0 72 112 / 0.78);
+  font-weight: 950;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  transition: filter 220ms ease, box-shadow 220ms ease;
+}
+
+.cyber-login-panel-signup .cyber-login-button {
+  height: 48px;
+  margin-top: 3px;
+  border-radius: 13px;
+}
+
+.cyber-login-button:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.7) brightness(0.84);
+}
+
+.cyber-button-glow {
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.72), transparent 34%);
+  transform: translateX(-60%);
+  transition: transform 420ms ease;
+}
+
+.cyber-login-button:hover .cyber-button-glow {
+  transform: translateX(60%);
+}
+
+.cyber-button-loader {
+  width: 17px;
+  height: 17px;
+  animation: spin 1s linear infinite;
+}
+
+.cyber-divider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 18px;
+  color: rgb(223 246 255 / 0.54);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.cyber-login-panel-signup .cyber-divider {
+  min-height: 12px;
+  font-size: 9px;
+}
+
+.cyber-divider::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(0 229 255 / 0.34), transparent);
+}
+
+.cyber-divider span {
+  position: relative;
+  z-index: 1;
+  padding: 0 10px;
+  background: #050816;
+  box-shadow: 0 0 18px rgb(0 229 255 / 0.12);
+}
+
+.cyber-google-shell {
+  position: relative;
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(0 229 255 / 0.24);
+  border-radius: 14px;
+  background: rgb(1 5 18 / 0.56);
+  box-shadow:
+    0 0 0 1px rgb(223 246 255 / 0.04) inset,
+    0 0 22px rgb(0 191 255 / 0.1);
+  overflow: hidden;
+}
+
+.cyber-login-panel-signup .cyber-google-shell {
+  min-height: 46px;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgb(223 246 255 / 0.96), rgb(255 255 255 / 0.98));
+  box-shadow:
+    0 0 0 1px rgb(0 229 255 / 0.22) inset,
+    0 0 22px rgb(0 229 255 / 0.16),
+    0 10px 24px rgb(0 0 0 / 0.22);
+}
+
+.cyber-google-frame {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  filter: saturate(1.06);
+}
+
+.cyber-google-shell > div:not(.cyber-google-loading) {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.cyber-google-loading {
+  width: 100%;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #dff6ff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.cyber-panel-footer {
+  position: relative;
+  margin-top: 22px;
+  text-align: center;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.cyber-login-panel-signup .cyber-panel-footer {
+  margin-top: 11px;
+  gap: 6px;
+}
+
+.cyber-panel-footer a,
+.cyber-mode-toggle {
+  color: rgb(223 246 255 / 0.66);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-decoration: none;
+  transition: color 200ms ease, text-shadow 200ms ease;
+}
+
+.cyber-auth-hint {
+  color: rgb(223 246 255 / 0.46);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.cyber-mode-toggle {
+  cursor: pointer;
+  color: #00e5ff;
+  border-bottom: 1px solid rgb(0 229 255 / 0.28);
+  padding-bottom: 2px;
+}
+
+.cyber-panel-footer a:hover,
+.cyber-mode-toggle:hover {
+  color: #00e5ff;
+  text-shadow: 0 0 14px rgb(0 229 255 / 0.78);
+}
+
+@keyframes cyber-circuit-pulse {
+  0%, 100% { opacity: 0.52; filter: brightness(0.9); }
+  50% { opacity: 0.86; filter: brightness(1.35); }
+}
+
+@keyframes cyber-node-pulse {
+  0%, 100% { transform: scale(0.82); opacity: 0.58; }
+  50% { transform: scale(1.28); opacity: 1; }
+}
+
+@keyframes cyber-particle-float {
+  0%, 100% { opacity: 0.12; transform: translate3d(0, 0, 0); }
+  40% { opacity: 0.72; }
+  50% { transform: translate3d(12px, -18px, 0); }
+}
+
+@keyframes cyber-panel-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgb(223 246 255 / 0.08) inset, 0 0 32px rgb(0 229 255 / 0.18), 0 34px 90px rgb(0 0 0 / 0.54); }
+  50% { box-shadow: 0 0 0 1px rgb(0 229 255 / 0.22) inset, 0 0 48px rgb(0 229 255 / 0.32), 0 34px 90px rgb(0 0 0 / 0.54); }
+}
+
+@keyframes cyber-border-drift {
+  0%, 100% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.018); opacity: 0.38; }
+}
+
+@keyframes cyber-scan {
+  0%, 38% { transform: translateX(-52%) rotate(8deg); opacity: 0; }
+  52% { opacity: 1; }
+  80%, 100% { transform: translateX(52%) rotate(8deg); opacity: 0; }
+}
+
+@media (max-width: 720px) {
+  .cyber-login-page {
+    padding: 18px;
+  }
+
+  .cyber-login-panel {
+    padding: 28px 22px;
+    border-radius: 24px;
+  }
+
+  .cyber-circuit {
+    inset: 5%;
+  }
+
+  .cyber-circuit-inner {
+    inset: 16%;
+  }
+
+  .cyber-trace {
+    width: 34vw;
+    height: 82px;
+    opacity: 0.48;
+  }
+}
+
+.cyber-app-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 52% 20%, rgb(0 191 255 / 0.16), transparent 25%),
+    radial-gradient(circle at 82% 72%, rgb(0 119 255 / 0.15), transparent 24%),
+    linear-gradient(135deg, #030512 0%, #050816 44%, #061a38 100%);
+  isolation: isolate;
+}
+
+.cyber-app-grid,
+.cyber-app-circuit,
+.cyber-app-node {
+  position: fixed;
+  pointer-events: none;
+}
+
+.cyber-app-grid {
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgb(0 229 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 229 255 / 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  transform: perspective(900px) rotateX(64deg) translateY(24%);
+  transform-origin: bottom;
+  opacity: 0.42;
+  mask-image: linear-gradient(to top, rgb(0 0 0 / 0.6), transparent 72%);
+}
+
+.cyber-app-circuit {
+  z-index: 0;
+  border: 1px solid rgb(0 229 255 / 0.26);
+  clip-path: polygon(8% 0, 92% 0, 100% 14%, 100% 86%, 92% 100%, 8% 100%, 0 86%, 0 14%);
+  box-shadow:
+    0 0 26px rgb(0 229 255 / 0.15),
+    inset 0 0 24px rgb(0 229 255 / 0.05);
+  animation: cyber-circuit-pulse 5.6s ease-in-out infinite;
+}
+
+.cyber-app-circuit-a {
+  inset: 7% 5%;
+}
+
+.cyber-app-circuit-b {
+  inset: 17% 14%;
+  opacity: 0.55;
+  animation-delay: -1.8s;
+}
+
+.cyber-app-node {
+  z-index: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #00e5ff;
+  box-shadow:
+    0 0 12px #00e5ff,
+    0 0 34px rgb(0 191 255 / 0.72);
+  animation: cyber-node-pulse 3.2s ease-in-out infinite;
+}
+
+.cyber-app-node-a {
+  left: 20%;
+  top: 18%;
+}
+
+.cyber-app-node-b {
+  right: 12%;
+  top: 36%;
+  animation-delay: -1s;
+}
+
+.cyber-app-node-c {
+  left: 44%;
+  bottom: 12%;
+  animation-delay: -2s;
+}
+
+.cyber-sidebar,
+.cyber-app-main,
+.cyber-app-header,
+.cyber-app-content {
+  position: relative;
+  z-index: 1;
+}
+
+.cyber-sidebar {
+  background:
+    linear-gradient(145deg, rgb(223 246 255 / 0.08), transparent 34%),
+    rgb(3 8 26 / 0.78) !important;
+  border-color: rgb(0 229 255 / 0.18) !important;
+  box-shadow:
+    0 0 0 1px rgb(0 229 255 / 0.08) inset,
+    18px 0 50px rgb(0 0 0 / 0.34),
+    0 0 42px rgb(0 229 255 / 0.08) !important;
+}
+
+.cyber-brand-mark {
+  border: 1px solid rgb(0 229 255 / 0.4);
+  background: linear-gradient(135deg, #00e5ff, #00bfff 48%, #dff6ff);
+  box-shadow:
+    0 0 18px rgb(0 229 255 / 0.52),
+    0 12px 28px rgb(0 191 255 / 0.18);
+}
+
+.cyber-brand-text {
+  color: #dff6ff;
+  text-shadow:
+    0 0 12px rgb(0 229 255 / 0.44),
+    0 0 28px rgb(0 191 255 / 0.2);
+}
+
+.cyber-nav-active {
+  border: 1px solid rgb(0 229 255 / 0.28);
+  background: rgb(0 229 255 / 0.1);
+  box-shadow:
+    0 0 0 1px rgb(223 246 255 / 0.04) inset,
+    0 0 24px rgb(0 229 255 / 0.12);
+}
+
+.cyber-account-card {
+  background:
+    linear-gradient(145deg, rgb(0 229 255 / 0.13), rgb(0 191 255 / 0.035));
+  border-color: rgb(0 229 255 / 0.2);
+  box-shadow: 0 0 24px rgb(0 229 255 / 0.08);
+}
+
+.cyber-progress {
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00e5ff, #00bfff, #dff6ff);
+  box-shadow: 0 0 12px rgb(0 229 255 / 0.68);
+}
+
+.cyber-app-header {
+  border-bottom: 1px solid rgb(0 229 255 / 0.12);
+  background: rgb(3 8 26 / 0.58);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 34px rgb(0 0 0 / 0.18);
+}
+
+.cyber-avatar {
+  border-color: rgb(0 229 255 / 0.32);
+  background: linear-gradient(135deg, #00e5ff, #006dff);
+  box-shadow:
+    0 0 18px rgb(0 229 255 / 0.34),
+    0 12px 28px rgb(0 0 0 / 0.28);
+}
+
+.cyber-app-shell .glass,
+.cyber-app-shell .glass-light {
+  border-color: rgb(0 229 255 / 0.16) !important;
+  background:
+    linear-gradient(145deg, rgb(223 246 255 / 0.075), transparent 34%),
+    rgb(3 8 26 / 0.66) !important;
+  backdrop-filter: blur(22px);
+  box-shadow:
+    0 0 0 1px rgb(223 246 255 / 0.04) inset,
+    0 0 28px rgb(0 229 255 / 0.08),
+    0 24px 60px rgb(0 0 0 / 0.32) !important;
+}
+
+.cyber-app-shell .text-indigo-400,
+.cyber-app-shell .text-purple-400,
+.cyber-app-shell .text-indigo-300 {
+  color: #00e5ff !important;
+}
+
+.cyber-app-shell .bg-indigo-600,
+.cyber-app-shell .hover\:bg-indigo-700:hover {
+  background: linear-gradient(90deg, #00e5ff, #00bfff 55%, #dff6ff) !important;
+  color: #04111d !important;
+  box-shadow:
+    0 0 22px rgb(0 229 255 / 0.4),
+    0 16px 34px rgb(0 191 255 / 0.12) !important;
+}
+
+.cyber-app-shell .bg-indigo-500,
+.cyber-app-shell .bg-purple-500 {
+  background-color: #00bfff !important;
+}
+
+.cyber-app-shell .shadow-indigo-500\/20,
+.cyber-app-shell .shadow-indigo-500\/30,
+.cyber-app-shell .shadow-indigo-500\/40 {
+  --tw-shadow-color: rgb(0 229 255 / 0.28) !important;
+}
+
+.cyber-app-shell h1,
+.cyber-app-shell h2,
+.cyber-app-shell h3 {
+  text-shadow: 0 0 18px rgb(0 229 255 / 0.12);
+}
+
+.cyber-landing-shell {
+  background:
+    radial-gradient(circle at 50% 24%, rgb(0 191 255 / 0.16), transparent 24%),
+    radial-gradient(circle at 83% 58%, rgb(0 119 255 / 0.18), transparent 25%),
+    radial-gradient(circle at 16% 36%, rgb(0 229 255 / 0.11), transparent 24%),
+    linear-gradient(135deg, #030512 0%, #050816 48%, #061a38 100%) !important;
+  isolation: isolate;
+}
+
+.cyber-landing-shell .cyber-landing-grid,
+.cyber-landing-shell .cyber-landing-vignette,
+.cyber-landing-shell .cyber-landing-circuit,
+.cyber-landing-shell .cyber-landing-trace,
+.cyber-landing-shell .cyber-landing-node {
+  position: fixed;
+  pointer-events: none;
+}
+
+.cyber-landing-shell .cyber-landing-grid {
+  z-index: 0;
+  opacity: 0.34;
+}
+
+.cyber-landing-shell .cyber-landing-vignette {
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 0.42), transparent 28%, transparent 72%, rgb(0 0 0 / 0.42)),
+    radial-gradient(circle at center, transparent 24%, rgb(0 0 0 / 0.4));
+}
+
+.cyber-landing-shell .cyber-landing-circuit {
+  z-index: 0;
+  inset: 10% 6%;
+  opacity: 0.36;
+}
+
+.cyber-landing-shell .cyber-landing-circuit-inner {
+  inset: 18% 15%;
+  opacity: 0.22;
+  animation-delay: -1.6s;
+}
+
+.cyber-landing-shell .cyber-landing-trace {
+  z-index: 1;
+  opacity: 0.46;
+}
+
+.cyber-landing-shell .cyber-landing-node {
+  z-index: 1;
+}
+
+.cyber-landing-shell nav {
+  border-color: rgb(0 229 255 / 0.18) !important;
+  background:
+    linear-gradient(90deg, rgb(0 229 255 / 0.06), transparent 36%, rgb(0 191 255 / 0.06)),
+    rgb(3 8 26 / 0.78) !important;
+  box-shadow:
+    0 1px 0 rgb(223 246 255 / 0.06) inset,
+    0 0 38px rgb(0 229 255 / 0.08);
+}
+
+.cyber-landing-primary {
+  border-color: rgb(223 246 255 / 0.24) !important;
+  color: #04111d !important;
+  background: linear-gradient(90deg, #00e5ff, #00bfff 52%, #dff6ff) !important;
+  box-shadow:
+    0 0 24px rgb(0 229 255 / 0.45),
+    0 18px 38px rgb(0 191 255 / 0.16),
+    0 3px 0 rgb(0 72 112 / 0.72) !important;
+}
+
+.cyber-landing-primary:hover {
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 32px rgb(0 229 255 / 0.58),
+    0 22px 48px rgb(0 191 255 / 0.2),
+    0 4px 0 rgb(0 72 112 / 0.72) !important;
+}
+
+.cyber-landing-secondary {
+  border-color: rgb(0 229 255 / 0.22) !important;
+  color: #dff6ff !important;
+  background:
+    linear-gradient(145deg, rgb(223 246 255 / 0.08), transparent 36%),
+    rgb(3 8 26 / 0.62) !important;
+  box-shadow:
+    0 0 0 1px rgb(223 246 255 / 0.04) inset,
+    0 0 26px rgb(0 229 255 / 0.08),
+    0 18px 42px rgb(0 0 0 / 0.28) !important;
+}
+
+.cyber-landing-secondary:hover {
+  border-color: rgb(0 229 255 / 0.48) !important;
+  background: rgb(0 229 255 / 0.1) !important;
+  box-shadow:
+    0 0 28px rgb(0 229 255 / 0.18),
+    0 22px 52px rgb(0 0 0 / 0.34) !important;
+}
+
+.cyber-landing-shell .glass,
+.cyber-landing-shell .glass-light,
+.cyber-landing-shell .tile-3d {
+  border-color: rgb(0 229 255 / 0.16) !important;
+}
+
+.cyber-landing-shell .glass,
+.cyber-landing-shell .glass-light {
+  background:
+    linear-gradient(145deg, rgb(223 246 255 / 0.07), transparent 38%),
+    rgb(3 8 26 / 0.62) !important;
+  box-shadow:
+    0 0 0 1px rgb(223 246 255 / 0.04) inset,
+    0 0 30px rgb(0 229 255 / 0.08),
+    0 24px 64px rgb(0 0 0 / 0.3) !important;
+}
+
+.cyber-landing-shell .tile-3d:hover {
+  border-color: rgb(0 229 255 / 0.34) !important;
+  box-shadow:
+    0 0 28px rgb(0 229 255 / 0.1),
+    0 26px 60px rgb(0 0 0 / 0.34) !important;
+}
+
+.cyber-landing-shell .text-indigo-300,
+.cyber-landing-shell .text-indigo-400,
+.cyber-landing-shell .text-violet-400 {
+  color: #00e5ff !important;
+}
+
+.cyber-landing-shell .bg-indigo-600,
+.cyber-landing-shell .bg-indigo-500 {
+  background: linear-gradient(135deg, #00e5ff, #00bfff 55%, #dff6ff) !important;
+  color: #04111d !important;
+}
+
+.cyber-landing-shell .ai-orb {
+  background:
+    radial-gradient(circle at 35% 30%, #ffffff, #dff6ff 12%, #00e5ff 38%, #006dff 70%, transparent 74%),
+    radial-gradient(circle, rgb(0 229 255 / 0.48), transparent 70%);
+  box-shadow:
+    0 0 45px rgb(0 229 255 / 0.55),
+    0 0 90px rgb(0 191 255 / 0.4),
+    0 0 140px rgb(0 119 255 / 0.18);
+}
+
+.cyber-landing-shell h1,
+.cyber-landing-shell h2,
+.cyber-landing-shell h3 {
+  text-shadow:
+    0 0 16px rgb(0 229 255 / 0.14),
+    0 0 34px rgb(0 191 255 / 0.08);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .float-3d {
     animation: none;
@@ -311,6 +1315,15 @@
   .ai-orb,
   .scanner-line,
   .skill-orbit,
+  .cyber-circuit,
+  .cyber-trace::after,
+  .cyber-particle,
+  .cyber-node,
+  .cyber-login-panel,
+  .cyber-app-circuit,
+  .cyber-app-node,
+  .cyber-panel-border-b,
+  .cyber-panel-scan::before,
   .holo-sheen::after {
     animation: none;
   }

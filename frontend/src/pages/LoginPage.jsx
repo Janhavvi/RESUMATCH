@@ -1,36 +1,58 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useMemo, useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
-import { Rocket, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { IdCard, Lock, Loader2, UserRound } from "lucide-react";
 import { apiFetch } from "../lib/api.js";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
-  const [tilt, setTilt] = useState({ x: "4deg", y: "-5deg" });
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 34 }, (_, index) => ({
+        id: index,
+        left: `${(index * 29) % 100}%`,
+        top: `${(index * 47) % 100}%`,
+        delay: `${(index % 9) * 0.36}s`,
+        size: `${2 + (index % 4)}px`,
+      })),
+    []
+  );
+  const nodes = useMemo(
+    () =>
+      [
+        ["8%", "22%"],
+        ["18%", "82%"],
+        ["28%", "14%"],
+        ["42%", "77%"],
+        ["56%", "19%"],
+        ["71%", "69%"],
+        ["86%", "28%"],
+        ["92%", "76%"],
+      ].map(([left, top], index) => ({ id: index, left, top })),
+    []
+  );
+
   const [mode, setMode] = useState("login");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!googleClientId) return;
-    apiFetch("/api/auth/google/config").catch(() => {});
-  }, [googleClientId]);
-
-  const submit = async (e) => {
-    e.preventDefault();
+  const submit = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
+
     try {
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const payload =
         mode === "login"
-          ? { email: email.trim(), password }
-          : { name: name.trim(), email: email.trim(), password };
+          ? { email: username.trim(), password }
+          : { name: name.trim(), email: username.trim(), password };
 
       const res = await apiFetch(endpoint, {
         method: "POST",
@@ -91,154 +113,174 @@ export const LoginPage = () => {
     }
   };
 
-  const updateTilt = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / rect.width - 0.5;
-    const y = (event.clientY - rect.top) / rect.height - 0.5;
-    setTilt({
-      x: `${(-y * 8 + 2).toFixed(2)}deg`,
-      y: `${(x * 10 - 3).toFixed(2)}deg`,
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-[#0a0514] text-slate-100 flex items-center justify-center p-6 scene-3d overflow-hidden">
-      <div className="absolute inset-x-0 bottom-0 h-72 depth-grid pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[560px] h-[560px] bg-indigo-600/10 rounded-full blur-[110px] pointer-events-none" />
-      <div
-        className="w-full max-w-md p-8 rounded-[32px] glass border border-white/10 relative z-10 card-3d float-3d holo-sheen"
-        onMouseMove={updateTilt}
-        onMouseLeave={() => setTilt({ x: "4deg", y: "-5deg" })}
-        style={{ "--tilt-x": tilt.x, "--tilt-y": tilt.y }}
+    <main className="cyber-login-page">
+      <div className="cyber-grid" aria-hidden="true" />
+      <div className="cyber-vignette" aria-hidden="true" />
+
+      <div className="cyber-circuit cyber-circuit-outer" aria-hidden="true" />
+      <div className="cyber-circuit cyber-circuit-middle" aria-hidden="true" />
+      <div className="cyber-circuit cyber-circuit-inner" aria-hidden="true" />
+
+      <div className="cyber-trace cyber-trace-top-left" aria-hidden="true" />
+      <div className="cyber-trace cyber-trace-top-right" aria-hidden="true" />
+      <div className="cyber-trace cyber-trace-bottom-left" aria-hidden="true" />
+      <div className="cyber-trace cyber-trace-bottom-right" aria-hidden="true" />
+
+      {particles.map((particle) => (
+        <span
+          key={particle.id}
+          className="cyber-particle"
+          style={{
+            "--particle-left": particle.left,
+            "--particle-top": particle.top,
+            "--particle-delay": particle.delay,
+            "--particle-size": particle.size,
+          }}
+          aria-hidden="true"
+        />
+      ))}
+
+      {nodes.map((node) => (
+        <span
+          key={node.id}
+          className="cyber-node"
+          style={{ "--node-left": node.left, "--node-top": node.top }}
+          aria-hidden="true"
+        />
+      ))}
+
+      <motion.section
+        className={`cyber-login-panel ${mode === "register" ? "cyber-login-panel-signup" : ""}`}
+        initial={{ opacity: 0, y: 34, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        whileHover={{ scale: 1.012 }}
       >
-        <div className="flex items-center gap-3 mb-8 lift-3d">
-          <div className="size-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center logo-3d">
-            <Rocket className="size-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight">RESUMATCH</h1>
-            <p className="text-xs text-slate-400 uppercase tracking-widest">
-              {mode === "login" ? "Welcome Back" : "Create Account"}
-            </p>
-          </div>
+        <div className="cyber-panel-border cyber-panel-border-a" aria-hidden="true" />
+        <div className="cyber-panel-border cyber-panel-border-b" aria-hidden="true" />
+        <div className="cyber-panel-scan" aria-hidden="true" />
+
+        <div className="cyber-panel-header">
+          <span className="cyber-panel-kicker">AI SECURE ACCESS</span>
+          <h1>{mode === "login" ? "LOGIN" : "SIGN UP"}</h1>
+          <p>{mode === "login" ? "Authenticate to continue" : "Initialize operator profile"}</p>
         </div>
 
-        <form onSubmit={submit} className="space-y-5 lift-3d">
-          {mode === "register" && (
-            <Field
-              label="Full Name"
-              value={name}
-              onChange={setName}
-              placeholder="Enter your name"
-              required
-            />
-          )}
-
-          <Field
-            label="Email"
-            value={email}
-            onChange={setEmail}
-            placeholder="you@example.com"
-            type="email"
-            required
-          />
-
-          <Field
-            label="Password"
-            value={password}
-            onChange={setPassword}
-            placeholder="Enter password"
-            type="password"
-            required
-          />
-
-          {error ? (
-            <div className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl p-3">
-              {error}
-            </div>
+        <form onSubmit={submit} className="cyber-login-form">
+          {mode === "register" ? (
+            <label className="cyber-field">
+              <span>Full Name</span>
+              <div className="cyber-field-shell">
+                <IdCard className="cyber-field-icon" aria-hidden="true" />
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                placeholder="your full name"
+                  autoComplete="name"
+                  required
+                />
+              </div>
+            </label>
           ) : null}
 
-          <button
+          <label className="cyber-field">
+            <span>Username</span>
+            <div className="cyber-field-shell">
+              <UserRound className="cyber-field-icon" aria-hidden="true" />
+              <input
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="you@example.com"
+                autoComplete="username"
+                required
+              />
+            </div>
+          </label>
+
+          <label className="cyber-field">
+            <span>Password</span>
+            <div className="cyber-field-shell">
+              <Lock className="cyber-field-icon" aria-hidden="true" />
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="access key"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+          </label>
+
+          {error ? <div className="cyber-error">{error}</div> : null}
+
+          <motion.button
             type="submit"
             disabled={loading}
-            className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold tracking-wide transition-all flex items-center justify-center gap-2 button-3d"
+            className="cyber-login-button"
+            whileHover={{ scale: 1.025 }}
+            whileTap={{ scale: 0.98 }}
           >
+            <span className="cyber-button-glow" aria-hidden="true" />
             {loading ? (
               <>
-                <Loader2 className="size-4 animate-spin" /> Please wait
+                <Loader2 className="cyber-button-loader" aria-hidden="true" />
+                VERIFYING
               </>
-            ) : mode === "login" ? (
-              "Login"
             ) : (
-              "Create Account"
+              mode === "login" ? "LOGIN" : "SIGN UP"
             )}
-          </button>
+          </motion.button>
 
           {googleClientId ? (
             <>
-              <div className="relative py-1">
-                <div className="h-px bg-white/10" />
-                <span className="absolute left-1/2 -translate-x-1/2 -top-2 px-2 text-[10px] uppercase tracking-widest text-slate-500 bg-[#0a0514]">
-                  or
-                </span>
+              <div className="cyber-divider">
+                <span>OR</span>
               </div>
 
-              <div className="min-h-12 flex justify-center items-center">
+              <div className="cyber-google-shell">
                 {googleLoading ? (
-                  <div className="w-full h-11 rounded-xl bg-white/90 text-slate-900 font-bold flex items-center justify-center gap-2 field-3d">
-                    <Loader2 className="size-4 animate-spin" /> Connecting
+                  <div className="cyber-google-loading">
+                    <Loader2 className="cyber-button-loader" aria-hidden="true" />
+                    CONNECTING GOOGLE
                   </div>
                 ) : (
-                  <GoogleLogin
-                    width="478"
-                    text="continue_with"
-                    shape="rectangular"
-                    onSuccess={(response) => signInWithGoogle(response.credential)}
-                    onError={() => setError("Google sign-in failed. Please try again.")}
-                  />
+                  <div className="cyber-google-frame">
+                    <GoogleLogin
+                      width={mode === "register" ? "354" : "366"}
+                      text="continue_with"
+                      shape="pill"
+                      theme="outline"
+                      size="large"
+                      logo_alignment="center"
+                      onSuccess={(response) => signInWithGoogle(response.credential)}
+                      onError={() => setError("Google sign-in failed. Please try again.")}
+                    />
+                  </div>
                 )}
               </div>
             </>
           ) : null}
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-400 lift-3d">
-          {mode === "login" ? "No account yet?" : "Already have an account?"}{" "}
+        <div className="cyber-panel-footer">
+          <span className="cyber-auth-hint">
+            {mode === "login" ? "Need access?" : "Already have access?"}
+          </span>
           <button
+            type="button"
+            className="cyber-mode-toggle"
             onClick={() => {
               setMode(mode === "login" ? "register" : "login");
               setError("");
             }}
-            className="text-indigo-400 hover:text-indigo-300 font-semibold"
           >
-            {mode === "login" ? "Create one" : "Login"}
+            {mode === "login" ? "SIGN UP" : "RETURN TO LOGIN"}
           </button>
+          <Link to="/">RETURN HOME</Link>
         </div>
-
-        <div className="mt-4 text-center lift-3d">
-          <Link to="/" className="text-xs uppercase tracking-widest text-slate-500 hover:text-slate-300">
-            Back to Home
-          </Link>
-        </div>
-      </div>
-    </div>
+      </motion.section>
+    </main>
   );
 };
-
-const Field = ({ label, value, onChange, type = "text", placeholder, required }) => (
-  <label className="block">
-    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">
-      {label}
-    </span>
-    <input
-      id={label.toLowerCase().replace(/\s+/g, "-")}
-      name={label.toLowerCase().replace(/\s+/g, "-")}
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      required={required}
-      className="w-full h-12 rounded-xl bg-black/40 border border-white/10 px-4 text-sm focus:border-indigo-500 outline-none transition-colors field-3d"
-    />
-  </label>
-);

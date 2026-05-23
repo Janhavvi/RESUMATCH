@@ -24,9 +24,34 @@ export const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen hero-ambient text-slate-100 selection:bg-indigo-500/30 font-sans overflow-x-hidden relative scene-3d">
+    <div className="cyber-landing-shell min-h-screen text-slate-100 selection:bg-cyan-400/30 font-sans overflow-x-hidden relative scene-3d">
+      <div className="cyber-grid cyber-landing-grid" aria-hidden="true" />
+      <div className="cyber-vignette cyber-landing-vignette" aria-hidden="true" />
+      <div className="cyber-circuit cyber-landing-circuit cyber-landing-circuit-outer" aria-hidden="true" />
+      <div className="cyber-circuit cyber-landing-circuit cyber-landing-circuit-inner" aria-hidden="true" />
+      <div className="cyber-trace cyber-trace-top-left cyber-landing-trace" aria-hidden="true" />
+      <div className="cyber-trace cyber-trace-top-right cyber-landing-trace" aria-hidden="true" />
+      <div className="cyber-trace cyber-trace-bottom-left cyber-landing-trace" aria-hidden="true" />
+      <div className="cyber-trace cyber-trace-bottom-right cyber-landing-trace" aria-hidden="true" />
+      {[
+        ["9%", "23%"],
+        ["21%", "82%"],
+        ["31%", "16%"],
+        ["47%", "78%"],
+        ["63%", "22%"],
+        ["78%", "66%"],
+        ["89%", "30%"],
+        ["94%", "78%"],
+      ].map(([left, top], index) => (
+        <span
+          key={`${left}-${top}`}
+          className="cyber-node cyber-landing-node"
+          style={{ "--node-left": left, "--node-top": top, animationDelay: `${index * -0.4}s` }}
+          aria-hidden="true"
+        />
+      ))}
       {/* Decorative Background Elements */}
-      <div className="absolute right-[-18rem] top-[-20rem] h-[720px] w-[720px] rounded-full bg-violet-600/12 blur-[150px] pointer-events-none" />
+      <div className="absolute right-[-18rem] top-[-20rem] h-[720px] w-[720px] rounded-full bg-cyan-500/10 blur-[150px] pointer-events-none" />
       <div className="absolute left-[-16rem] top-[14rem] h-[560px] w-[560px] rounded-full bg-cyan-500/8 blur-[145px] pointer-events-none" />
       <div className="absolute inset-x-0 top-[40rem] h-72 depth-grid pointer-events-none" />
 
@@ -34,11 +59,11 @@ export const LandingPage = () => {
       <nav className="fixed top-0 w-full z-50 border-b border-white/8 bg-[#080713]/70 backdrop-blur-2xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-2xl shadow-indigo-500/25 ring-1 ring-white/15">
+            <div className="cyber-brand-mark flex size-11 items-center justify-center rounded-2xl ring-1 ring-cyan-200/20">
               <Rocket className="size-6 text-white" />
             </div>
-            <span className="text-2xl font-black uppercase tracking-tight italic text-white drop-shadow-[0_0_18px_rgba(129,140,248,0.22)]">
-              Resu<span className="text-indigo-300">Match</span>
+            <span className="cyber-brand-text text-2xl font-black uppercase tracking-tight italic">
+              Resu<span className="text-cyan-200">Match</span>
             </span>
           </Link>
           <div className="hidden items-center gap-9 text-[12px] font-black uppercase tracking-[0.22em] text-slate-400 lg:flex">
@@ -48,7 +73,7 @@ export const LandingPage = () => {
           </div>
           <div className="flex items-center gap-3 sm:gap-5">
             <Link to="/login" className="hidden text-xs font-black uppercase tracking-widest text-slate-400 transition-colors hover:text-white sm:inline">Login</Link>
-            <Link to="/login" className="rounded-2xl border border-indigo-300/40 bg-indigo-500 px-5 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/25 transition-all hover:-translate-y-0.5 hover:bg-indigo-400 hover:shadow-indigo-400/30 active:translate-y-0">
+            <Link to="/login" className="cyber-landing-primary rounded-2xl border px-5 py-3 text-xs font-black uppercase tracking-widest transition-all hover:-translate-y-0.5 active:translate-y-0">
               Get Started
             </Link>
           </div>
@@ -69,16 +94,16 @@ export const LandingPage = () => {
             </div>
             <h1 className="text-5xl font-black uppercase italic leading-[0.86] tracking-tight text-white sm:text-6xl md:text-7xl xl:text-8xl">
               Beat the <br />
-              <span className="bg-gradient-to-r from-cyan-200 via-indigo-300 to-violet-400 bg-clip-text text-transparent">Algorithms</span>
+              <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-[#dff6ff] bg-clip-text text-transparent">Algorithms</span>
             </h1>
             <p className="mx-auto max-w-2xl text-lg font-medium leading-relaxed text-slate-400 sm:text-xl lg:mx-0">
               Industry-standard AI intelligence platform for professional resume auditing and strategic career alignment.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
-              <Link to="/analyzer" className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-9 py-5 text-xs font-black uppercase tracking-[0.18em] text-slate-950 shadow-2xl shadow-cyan-500/10 transition-all hover:-translate-y-1 hover:bg-cyan-50 hover:shadow-cyan-400/20 active:translate-y-0 sm:w-auto">
+              <Link to="/analyzer" className="cyber-landing-primary group flex w-full items-center justify-center gap-3 rounded-2xl px-9 py-5 text-xs font-black uppercase tracking-[0.18em] transition-all hover:-translate-y-1 active:translate-y-0 sm:w-auto">
                 Analyze Resume <ChevronRight className="size-5 transition-transform group-hover:translate-x-1" />
               </Link>
-              <Link to="/builder" className="w-full rounded-2xl border border-white/12 bg-white/[0.055] px-9 py-5 text-xs font-black uppercase tracking-[0.18em] text-white shadow-2xl shadow-black/20 backdrop-blur-2xl transition-all hover:-translate-y-1 hover:border-violet-300/35 hover:bg-white/[0.09] active:translate-y-0 sm:w-auto">
+              <Link to="/builder" className="cyber-landing-secondary w-full rounded-2xl border px-9 py-5 text-xs font-black uppercase tracking-[0.18em] shadow-2xl backdrop-blur-2xl transition-all hover:-translate-y-1 active:translate-y-0 sm:w-auto">
                 Build Resume
               </Link>
             </div>
@@ -119,7 +144,7 @@ export const LandingPage = () => {
                     <p className="text-2xl font-black tracking-tight">John Doe</p>
                     <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-600">AI Product Engineer</p>
                   </div>
-                  <div className="rounded-2xl bg-indigo-600 px-3.5 py-2.5 text-center text-white shadow-xl shadow-indigo-300">
+                  <div className="rounded-2xl bg-cyan-500 px-3.5 py-2.5 text-center text-slate-950 shadow-xl shadow-cyan-300/50">
                     <p className="text-xl font-black">94</p>
                     <p className="text-[9px] font-black uppercase tracking-widest">ATS</p>
                   </div>
@@ -127,7 +152,7 @@ export const LandingPage = () => {
                 <div className="space-y-2.5">
                   {[82, 96, 68, 88].map((width, index) => (
                     <div key={index} className="h-2.5 rounded-full bg-slate-200">
-                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-indigo-500" style={{ width: `${width}%` }} />
+                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-[#00bfff] to-[#dff6ff]" style={{ width: `${width}%` }} />
                     </div>
                   ))}
                 </div>
@@ -220,7 +245,7 @@ export const LandingPage = () => {
       >
          <div className="max-w-7xl mx-auto space-y-24">
             <div className="text-center space-y-4">
-               <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tight">Intelligence <span className="text-indigo-400">Framework</span></h2>
+               <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tight">Intelligence <span className="text-cyan-300">Framework</span></h2>
                <p className="text-slate-400 font-medium max-w-2xl mx-auto">Advanced engineering for the modern professional job seeker.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -244,8 +269,8 @@ export const LandingPage = () => {
       {/* Footer */}
       <footer className="py-32 px-8 border-t border-white/5 glass relative z-10">
          <div className="max-w-4xl mx-auto text-center space-y-16">
-            <h2 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.9]">Ready to <span className="text-indigo-400 underline underline-offset-8 decoration-white/10">Scale</span> Your Career?</h2>
-            <Link to="/analyzer" className="inline-flex items-center gap-4 bg-indigo-600 hover:bg-indigo-700 text-white px-16 py-7 rounded-[40px] font-black uppercase text-xl tracking-widest shadow-3xl shadow-indigo-500/30 transition-all active:scale-95 group">
+            <h2 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.9]">Ready to <span className="text-cyan-300 underline underline-offset-8 decoration-cyan-200/20">Scale</span> Your Career?</h2>
+            <Link to="/analyzer" className="cyber-landing-primary inline-flex items-center gap-4 px-16 py-7 rounded-[40px] font-black uppercase text-xl tracking-widest transition-all active:scale-95 group">
                 Enter Interface <ArrowRight className="size-6 group-hover:translate-x-2 transition-transform" />
             </Link>
             <div className="pt-20 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-10 text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">

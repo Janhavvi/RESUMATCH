@@ -168,21 +168,6 @@ export const ResumeBuilderPage = () => {
     return tips.slice(0, 4);
   }, [data]);
 
-  const floatingPreviewSkills = useMemo(() => {
-    const skills = [
-      data.technicalSkills.programmingLanguages,
-      data.technicalSkills.frameworks,
-      data.technicalSkills.databases,
-      data.technicalSkills.tools,
-      ...data.softSkills,
-    ]
-      .flatMap((item) => String(item || "").split(/[,/|]/))
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    return (skills.length ? skills : ["ATS", "AI", "React", "Leadership", "MongoDB", "PDF"]).slice(0, 7);
-  }, [data.technicalSkills, data.softSkills]);
-
   const cycleFramework = () => {
     const idx = FRAMEWORKS.findIndex((f) => f.key === visualFramework);
     setVisualFramework(FRAMEWORKS[(idx + 1) % FRAMEWORKS.length].key);
@@ -856,18 +841,6 @@ export const ResumeBuilderPage = () => {
             </div>
           ) : (
             <div className="relative scene-3d">
-              {floatingPreviewSkills.map((skill, index) => (
-                <span
-                  key={`${skill}-${index}`}
-                  className="absolute z-20 hidden rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-cyan-100 backdrop-blur-xl skill-orbit lg:inline-flex"
-                  style={{
-                    left: index % 2 === 0 ? "-4%" : "76%",
-                    top: `${9 + index * 11}%`,
-                  }}
-                >
-                  {skill}
-                </span>
-              ))}
               <div className="absolute -inset-6 rounded-[52px] bg-cyan-400/10 blur-3xl" />
               <div
                 id="resume-print-root"

@@ -14,6 +14,14 @@ const ATS_KEYWORDS = [
   "leadership", "communication", "problem solving", "data analysis"
 ];
 
+const COMMON_TECH_SKILLS = [
+  "HTML", "CSS", "JavaScript", "TypeScript", "React", "Node.js", "Express",
+  "Python", "Java", "C++", "SQL", "MongoDB", "PostgreSQL", "MySQL", "Git",
+  "GitHub", "REST API", "GraphQL", "Docker", "Kubernetes", "AWS", "Azure",
+  "Firebase", "Tailwind", "Bootstrap", "Testing", "Jest", "CI/CD", "Figma",
+  "Data Analysis", "Machine Learning", "Excel", "Power BI", "Tableau"
+];
+
 // Nvidia API endpoint for chat completions
 const NVIDIA_API_BASE = "https://integrate.api.nvidia.com/v1";
 
@@ -274,10 +282,14 @@ async function callNvidiaAPI(prompt, isJsonMode = false) {
   }
 
   const model = process.env.NVIDIA_MODEL || "nvidia/llama-2-70b-chat";
+  const timeoutMs = Number(process.env.NVIDIA_TIMEOUT_MS || 12000);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(`${NVIDIA_API_BASE}/chat/completions`, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
@@ -323,8 +335,16 @@ async function callNvidiaAPI(prompt, isJsonMode = false) {
     console.log("✅ Nvidia API call successful");
     return content.trim();
   } catch (error) {
-    console.error("❌ Nvidia API call failed:", error.message);
+    const message = error.name === "AbortError"
+      ? `Nvidia API timed out after ${timeoutMs}ms`
+      : error.message;
+    console.error("❌ Nvidia API call failed:", message);
+    if (error.name === "AbortError") {
+      throw new Error(message);
+    }
     throw error;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -618,5 +638,564 @@ Return as plain text only, no explanations or extra text.`;
     return response.trim();
   } catch {
     return `${projectName} - Developed using ${technologies} to ${details}.`;
+  }
+}
+
+/**
+ * Generate interview questions tailored to resume
+ */
+export async function generateInterviewQuestions(resumeText) {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  
+  const fallbackQuestions = [
+    "Can you walk us through your most significant technical achievement and the technologies you used?",
+    "Tell me about a time you had to solve a challenging problem. What was your approach?",
+    "How do you stay current with technology trends and improve your skills?",
+    "Describe a situation where you had to work with a difficult team member. How did you handle it?",
+    "What are your career goals, and how does this role align with them?",
+  ];
+  
+  if (!apiKey) {
+    return fallbackQuestions;
+  }
+
+  try {
+    const prompt = `Generate 5 tailored interview questions based on this resume. Return ONLY valid JSON array of strings, no extra text.
+
+Resume:
+${resumeText}
+
+Questions should:
+1. Reference specific skills or experience from the resume
+2. Be recruiter-style behavioral and technical questions
+3. Ask about concrete examples and measurable results
+4. Include both technical and soft skills assessment
+
+Return as JSON array of question strings ONLY:`;
+
+    const responseText = await callNvidiaAPI(prompt, true);
+    
+    // Extract JSON
+    let jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
+    
+    const questions = JSON.parse(jsonStr);
+    return Array.isArray(questions) && questions.length > 0 ? questions : fallbackQuestions;
+  } catch (error) {
+    console.warn("Failed to generate interview questions, using fallback:", error.message);
+    return fallbackQuestions;
+  }
+}
+
+/**
+ * Evaluate interview answer for clarity, filler words, and accuracy
+ */
+export async function evaluateInterviewAnswer(question, userAnswer, resumeContext = "") {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  
+  const fillerWordsPattern = /\b(um|uh|like|you know|basically|actually|sort of|kind of|i think|well|so|anyway)\b/gi;
+  const fillerWordsFound = (userAnswer.match(fillerWordsPattern) || []).map(w => w.toLowerCase());
+  
+  if (!apiKey) {
+    return {
+      score: 75,
+      feedback: "Your answer demonstrates good communication. Consider being more specific about measurable outcomes.",
+      fillerWords: [...new Set(fillerWordsFound)],
+    };
+  }
+
+  try {
+    const prompt = `Evaluate this interview answer. Return ONLY valid JSON (no markdown, no extra text) with:
+- score: number 0-100
+- feedback: string with 2-3 sentences of constructive feedback
+- suggestions: array of 2-3 specific improvements
+
+Question: ${question}
+Answer: ${userAnswer}
+${resumeContext ? `Resume context: ${resumeContext.substring(0, 500)}` : ""}
+
+Evaluate on:
+1. Relevance to the question
+2. Specificity and use of examples
+3. Clarity and conciseness
+4. Demonstrated skills or achievements
+
+Return as JSON ONLY:`;
+
+    const responseText = await callNvidiaAPI(prompt, true);
+    
+    // Extract JSON
+    let jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
+    
+    const evaluation = JSON.parse(jsonStr);
+    evaluation.score = Math.max(0, Math.min(100, Math.round(Number(evaluation.score || 75))));
+    evaluation.fillerWords = [...new Set(fillerWordsFound)];
+    
+    return evaluation;
+  } catch (error) {
+    console.warn("Failed to evaluate interview answer:", error.message);
+    return {
+      score: 75,
+      feedback: "Your answer demonstrates good communication. Consider being more specific about measurable outcomes.",
+      fillerWords: [...new Set(fillerWordsFound)],
+    };
+  }
+}
+
+/**
+ * Infer missing skills from resume text and a target role.
+ */
+export async function inferSkillGapsFromResume(resumeText, targetRole = "", extraSkills = []) {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  const lowerResume = String(resumeText || "").toLowerCase();
+  const role = String(targetRole || "target role").trim();
+  const extras = Array.isArray(extraSkills)
+    ? extraSkills.map((skill) => String(skill || "").trim()).filter(Boolean)
+    : [];
+
+  const roleSkillMap = {
+    frontend: ["React", "TypeScript", "Responsive UI", "API Integration", "Testing"],
+    backend: ["Node.js", "REST APIs", "SQL", "Authentication", "Testing"],
+    fullstack: ["React", "Node.js", "SQL", "API Integration", "Deployment"],
+    "full-stack": ["React", "Node.js", "SQL", "API Integration", "Deployment"],
+    data: ["SQL", "Python", "Data Visualization", "Statistics", "Dashboarding"],
+    devops: ["Docker", "Kubernetes", "CI/CD", "Cloud Deployment", "Monitoring"],
+    cloud: ["AWS", "Docker", "CI/CD", "Infrastructure as Code", "Monitoring"],
+    ai: ["Python", "Machine Learning", "Prompt Engineering", "Model Evaluation", "Vector Databases"],
+    ml: ["Python", "Machine Learning", "Model Evaluation", "Feature Engineering", "MLOps"],
+  };
+
+  const roleLower = role.toLowerCase();
+  const targetSkills = Object.entries(roleSkillMap).find(([keyword]) => roleLower.includes(keyword))?.[1]
+    || ["Git", "API Integration", "Testing", "Deployment", "Technical Documentation"];
+
+  const fallbackSkills = targetSkills.filter((skill) => !lowerResume.includes(skill.toLowerCase()));
+  const detectedResumeSkills = COMMON_TECH_SKILLS.filter((skill) => {
+    const normalized = skill.toLowerCase().replace(/\./g, "");
+    const resumeNormalized = lowerResume.replace(/\./g, "");
+    return lowerResume.includes(skill.toLowerCase()) || resumeNormalized.includes(normalized);
+  }).slice(0, 16);
+
+  const extraLookup = new Set(extras.map((skill) => skill.toLowerCase()));
+  const uniqueFallback = [...new Set(fallbackSkills.map((skill) => skill.trim()).filter(Boolean))]
+    .filter((skill) => !extraLookup.has(skill.toLowerCase()))
+    .slice(0, 8);
+
+  if (!apiKey || !resumeText) {
+    return {
+      detectedSkills: detectedResumeSkills,
+      inferredSkills: uniqueFallback,
+      addedSkills: extras,
+      sourceSummary: resumeText
+        ? `Skill gaps inferred from resume content for ${role}.`
+        : "No resume content was provided, so roadmap skills came from manual input.",
+    };
+  }
+
+  try {
+    const prompt = `Analyze this resume for the target role and infer missing or weak skills. Return ONLY valid JSON with:
+- detectedSkills: array of 6-16 concrete skills, tools, languages, frameworks, or platforms already present in the resume
+- inferredSkills: array of 4-8 specific skills the candidate should learn or strengthen
+- addedSkills: array containing only these user-requested extra skills: ${JSON.stringify(extras)}
+- sourceSummary: one concise sentence explaining what the roadmap is based on
+
+Target role: ${role}
+Resume text:
+${String(resumeText).slice(0, 8000)}
+
+Rules:
+1. Do not include skills that are already strongly demonstrated in the resume unless they need deeper portfolio proof.
+2. Prefer concrete tools and capabilities over vague traits.
+3. Include user-requested extra skills in addedSkills, not inferredSkills.
+4. Return JSON only.`;
+
+    const responseText = await callNvidiaAPI(prompt, true);
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
+    const detectedSkills = Array.isArray(parsed.detectedSkills) ? parsed.detectedSkills : detectedResumeSkills;
+    const inferredSkills = Array.isArray(parsed.inferredSkills) ? parsed.inferredSkills : [];
+    const addedSkills = Array.isArray(parsed.addedSkills) ? parsed.addedSkills : extras;
+
+    const normalizedAdded = [...new Set(addedSkills.map((skill) => String(skill || "").trim()).filter(Boolean))];
+    const addedLookup = new Set(normalizedAdded.map((skill) => skill.toLowerCase()));
+
+    return {
+      detectedSkills: [...new Set(detectedSkills.map((skill) => String(skill || "").trim()).filter(Boolean))].slice(0, 16),
+      inferredSkills: [...new Set(inferredSkills.map((skill) => String(skill || "").trim()).filter(Boolean))]
+        .filter((skill) => !addedLookup.has(skill.toLowerCase()))
+        .slice(0, 8),
+      addedSkills: normalizedAdded,
+      sourceSummary: parsed.sourceSummary || `Skill gaps inferred from resume content for ${role}.`,
+    };
+  } catch (error) {
+    console.warn("Failed to infer skill gaps from resume:", error.message);
+    return {
+      detectedSkills: detectedResumeSkills,
+      inferredSkills: uniqueFallback,
+      addedSkills: extras,
+      sourceSummary: `Skill gaps inferred from resume content for ${role}.`,
+    };
+  }
+}
+
+/**
+ * Generate personalized skill roadmap with project recommendations
+ */
+export async function generateSkillRoadmap(missingSkills, targetRole = "") {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  
+  const fallbackSkills = missingSkills.map(skill => ({
+    skill: skill,
+    proficiency: "intermediate",
+    importance: "high",
+    whyItMatters: `${skill} is commonly screened for ${targetRole || "target"} roles and should be proven through a practical, resume-ready project.`,
+    targetOutcome: `Build enough ${skill} confidence to explain tradeoffs, implement a small feature independently, and show evidence in a portfolio or resume bullet.`,
+    prerequisites: [`Core ${skill} concepts`, "Basic Git/GitHub workflow", "Ability to document project decisions"],
+    milestones: [
+      {
+        week: "Week 1",
+        title: `Build the ${skill} foundation`,
+        goals: [`Understand the core concepts and vocabulary of ${skill}`, "Set up a small practice environment"],
+        practiceTasks: [`Complete a focused ${skill} tutorial`, "Create 3-5 small examples and commit them to GitHub"],
+        deliverables: [`A notes file explaining key ${skill} concepts`, "A working practice repository"],
+        estimatedHours: 6,
+      },
+      {
+        week: "Week 2",
+        title: `Apply ${skill} in a portfolio feature`,
+        goals: [`Use ${skill} in a realistic workflow`, "Prepare proof that can be discussed in interviews"],
+        practiceTasks: ["Build the project MVP", "Write a README with setup steps, screenshots, and tradeoffs"],
+        deliverables: ["A deployed or runnable project", "A resume bullet with measurable scope"],
+        estimatedHours: 12,
+      },
+    ],
+    projects: [
+      {
+        name: `Build a ${skill} Portfolio Project`,
+        description: `Create a practical, role-relevant project demonstrating ${skill} through setup, implementation, documentation, and measurable outcomes.`,
+        timeframe: "1-2 weeks",
+        technologies: [skill],
+        learningResources: [`${skill} documentation`, `Online tutorials for ${skill}`],
+        acceptanceCriteria: [
+          "Project runs locally with documented setup steps",
+          `At least one core ${skill} concept is implemented instead of only mentioned`,
+          "README includes screenshots, architecture notes, and lessons learned",
+        ],
+        portfolioProof: "GitHub repository with a polished README and, if possible, a deployed demo.",
+        resumeBullet: `Built a portfolio project using ${skill}, documenting implementation decisions and delivering a runnable feature for ${targetRole || "target"} workflows.`,
+        stretchGoal: "Add tests, error handling, and a short technical write-up comparing alternate approaches.",
+        estimatedHours: 20,
+      },
+    ],
+  }));
+  
+  if (!apiKey) {
+    return { skills: fallbackSkills };
+  }
+
+  try {
+    const skillsList = missingSkills.join(", ");
+    const prompt = `Generate a detailed AI learning roadmap for these missing skills. Return ONLY valid JSON (no markdown, no extra text) with:
+- skills: array of objects, each with:
+  - skill: string
+  - proficiency: string (beginner/intermediate/advanced)
+  - importance: string (high/medium/low)
+  - whyItMatters: string explaining why recruiters or hiring managers value this skill for the target role
+  - targetOutcome: string describing what the learner should be able to build, explain, and show after the roadmap
+  - prerequisites: array of 2-4 short strings
+  - milestones: array of 3-5 objects with:
+    - week: string (example: "Week 1")
+    - title: string
+    - goals: array of 2-3 strings
+    - practiceTasks: array of 2-4 specific tasks
+    - deliverables: array of 1-3 tangible outputs
+    - estimatedHours: number
+  - projects: array of objects with:
+    - name: string
+    - description: string with concrete scope and user story
+    - timeframe: string (e.g., "weekend", "1 week", "2 weeks")
+    - technologies: array of strings
+    - learningResources: array of strings with specific docs, courses, or search phrases
+    - acceptanceCriteria: array of 3-5 checklist items proving the project is complete
+    - portfolioProof: string explaining what screenshot, demo, repo, README, or metric should be shown
+    - resumeBullet: string written as a strong resume bullet with action verb and measurable scope
+    - stretchGoal: string
+    - estimatedHours: number
+
+Missing skills: ${skillsList}
+Target role/position: ${targetRole}
+
+For each skill:
+1. Build a practical 2-4 week learning path with weekly milestones
+2. Suggest 2 portfolio-worthy projects that demonstrate the exact skill in a hiring-relevant context
+3. Include concrete technologies, learning resources, acceptance criteria, and deliverables
+4. Make the plan beginner-friendly but not vague; every item should be actionable
+5. Include resume bullets that a candidate could adapt after completing the project
+
+Return as JSON ONLY:`;
+
+    const responseText = await callNvidiaAPI(prompt, true);
+    
+    // Extract JSON
+    let jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
+    
+    const roadmap = JSON.parse(jsonStr);
+    return roadmap;
+  } catch (error) {
+    console.warn("Failed to generate skill roadmap:", error.message);
+    return { skills: fallbackSkills };
+  }
+}
+
+/**
+ * Generate detailed interview questions with metadata
+ */
+export async function generateDetailedInterviewQuestions(resumeText) {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  
+  const fallbackQuestions = [
+    {
+      question: "Can you walk us through your most significant technical achievement and the technologies you used?",
+      type: "Technical",
+      company: "Target employer",
+      answer: "Discuss a specific project where you made measurable impact. Mention the technologies, your role, and quantifiable results (e.g., 'improved performance by 40%').",
+      grounding: "Strong technical foundation"
+    },
+    {
+      question: "Tell me about a time you had to solve a challenging problem. What was your approach?",
+      type: "Behavioral",
+      company: "Target employer",
+      answer: "Use the STAR method: Situation, Task, Action, Result. Highlight your problem-solving process and any lessons learned.",
+      grounding: "Problem-solving skills"
+    },
+    {
+      question: "How do you stay current with technology trends and improve your skills?",
+      type: "Behavioral",
+      company: "Target employer",
+      answer: "Mention specific resources you use (online courses, conferences, personal projects, open source contributions) and give concrete examples of technologies you've recently learned.",
+      grounding: "Continuous learning"
+    },
+    {
+      question: "Describe a situation where you had to work with a difficult team member. How did you handle it?",
+      type: "Behavioral",
+      company: "Target employer",
+      answer: "Focus on communication, empathy, and finding common ground. Show how you resolved conflicts professionally.",
+      grounding: "Collaboration skills"
+    },
+    {
+      question: "What are your career goals, and how does this role align with them?",
+      type: "Behavioral",
+      company: "Target employer",
+      answer: "Articulate clear, realistic goals aligned with the role. Show how this position will help you grow and contribute value.",
+      grounding: "Career alignment"
+    }
+  ];
+  
+  if (!apiKey) {
+    return fallbackQuestions;
+  }
+
+  try {
+    const prompt = `Generate 5 interview questions based on this resume. Return ONLY valid JSON array of objects, no extra text.
+
+Resume:
+${resumeText}
+
+For each question, return an object with:
+- question: string (the interview question)
+- type: string (Technical, Behavioral, or Role-specific)
+- company: string (target company type or industry)
+- answer: string (suggested answer approach)
+- grounding: string (what resume skill/experience this tests)
+
+Questions should:
+1. Reference specific skills or experience from the resume
+2. Be recruiter-style behavioral and technical questions
+3. Include suggested answer approach
+4. Be grounded in resume content
+
+Return as JSON array ONLY (no markdown):`;
+
+    const responseText = await callNvidiaAPI(prompt, true);
+    
+    // Extract JSON
+    let jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
+    
+    const questions = JSON.parse(jsonStr);
+    return Array.isArray(questions) && questions.length > 0 ? questions.slice(0, 5) : fallbackQuestions;
+  } catch (error) {
+    console.warn("Failed to generate detailed interview questions, using fallback:", error.message);
+    return fallbackQuestions;
+  }
+}
+
+function normalizeQuestionText(text = "") {
+  return String(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function questionSimilarity(a = "", b = "") {
+  const aWords = new Set(normalizeQuestionText(a).split(" ").filter((word) => word.length > 2));
+  const bWords = new Set(normalizeQuestionText(b).split(" ").filter((word) => word.length > 2));
+  if (!aWords.size || !bWords.size) return 0;
+  const overlap = [...aWords].filter((word) => bWords.has(word)).length;
+  return overlap / Math.max(aWords.size, bWords.size);
+}
+
+function isSimilarToPrevious(question, previousQuestions = []) {
+  const normalized = normalizeQuestionText(question);
+  return previousQuestions.some((previous) => {
+    const previousNormalized = normalizeQuestionText(previous);
+    return previousNormalized === normalized || questionSimilarity(normalized, previousNormalized) >= 0.72;
+  });
+}
+
+function inferResumeSignals(resumeText = "") {
+  const lower = String(resumeText).toLowerCase();
+  const cleanSignal = (value = "", fallback = "") =>
+    String(value || fallback)
+      .replace(/^(for|about|on|in|with)\s+/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const skills = [
+    "React", "Node.js", "JavaScript", "Python", "Java", "SQL", "MongoDB", "Docker",
+    "AWS", "Machine Learning", "Data Analysis", "REST API", "Tailwind", "Git",
+  ].filter((skill) => lower.includes(skill.toLowerCase().replace(".", "")) || lower.includes(skill.toLowerCase()));
+  const projectMatch = String(resumeText).match(/(?:project|projects)[:\s-]+([^\n.]{8,80})/i);
+  const activityMatch = String(resumeText).match(/(?:hackathon|volunteer|club|community|campus|event|activity)[^\n.]{0,80}/i);
+  const educationMatch = String(resumeText).match(/(?:bachelor|b\.tech|college|university|semester|sem|degree)[^\n.]{0,80}/i);
+
+  return {
+    primarySkill: skills[0] || "your strongest technical skill",
+    secondarySkill: skills[1] || "problem solving",
+    project: cleanSignal(projectMatch?.[1], "your most relevant project"),
+    activity: cleanSignal(activityMatch?.[0], "your extracurricular or leadership experience"),
+    education: cleanSignal(educationMatch?.[0], "your education background"),
+  };
+}
+
+function fallbackFreshInterviewQuestions(resumeText = "", previousQuestions = [], seed = Date.now()) {
+  const signals = inferResumeSignals(resumeText);
+  const styleSets = [
+    {
+      type: "Technical",
+      company: "Engineering team",
+      question: `How would you explain the technical architecture behind ${signals.project}, and what tradeoff did you make around ${signals.primarySkill}?`,
+      answer: `Walk through the problem, architecture, tools used, constraints, and one measurable or user-facing outcome. Mention why ${signals.primarySkill} was a good choice.`,
+      grounding: signals.project,
+    },
+    {
+      type: "Project-based",
+      company: "Product-focused employer",
+      question: `Pick one project from your resume and describe how you would improve it if a real company asked you to scale it for more users.`,
+      answer: "Discuss bottlenecks, reliability, testing, deployment, security, and a practical roadmap for scaling.",
+      grounding: "Resume projects",
+    },
+    {
+      type: "Behavioral",
+      company: "Cross-functional team",
+      question: `Tell me about a time you had to learn something quickly for ${signals.project} or ${signals.activity}. How did you handle uncertainty?`,
+      answer: "Use the STAR method and include how you learned, applied feedback, and measured success.",
+      grounding: signals.activity,
+    },
+    {
+      type: "HR",
+      company: "Recruiter screen",
+      question: `Your resume shows ${signals.education}. How has that prepared you for this role, and where do you still want to grow?`,
+      answer: "Connect education to role-readiness, then name one honest growth area with a concrete learning plan.",
+      grounding: signals.education,
+    },
+    {
+      type: "Company-angle",
+      company: "Fast-moving startup",
+      question: `If you joined a startup tomorrow, which resume skill would help you contribute fastest and what would you build in your first two weeks?`,
+      answer: "Choose a skill, name a small useful deliverable, and describe how you would validate impact with users or teammates.",
+      grounding: signals.primarySkill,
+    },
+    {
+      type: "Problem-solving",
+      company: "Senior engineering panel",
+      question: `Imagine ${signals.project} suddenly starts failing for some users. How would you debug, prioritize, and communicate the fix?`,
+      answer: "Explain reproduction, logs, hypothesis testing, rollback options, communication, and prevention.",
+      grounding: signals.project,
+    },
+    {
+      type: "Technical",
+      company: "Code review panel",
+      question: `What is one code quality or testing improvement you would add to your resume projects before showing them to an engineering manager?`,
+      answer: "Discuss tests, error handling, readable structure, documentation, and CI checks.",
+      grounding: "Project quality gaps",
+    },
+    {
+      type: "Behavioral",
+      company: "Team leadership round",
+      question: `Describe a moment from ${signals.activity} where coordination mattered. What did you do, and what would you do differently now?`,
+      answer: "Show ownership, collaboration, reflection, and a clear improvement.",
+      grounding: signals.activity,
+    },
+  ];
+
+  const rotated = styleSets.slice(seed % styleSets.length).concat(styleSets.slice(0, seed % styleSets.length));
+  const fresh = rotated.filter((item) => !isSimilarToPrevious(item.question, previousQuestions));
+  return (fresh.length ? fresh : rotated)
+    .slice(0, 5)
+    .map((item, index) => ({
+      ...item,
+      question: fresh.length ? item.question : `${item.question} Focus your answer on attempt ${index + 1} and include one concrete metric.`,
+    }));
+}
+
+export async function generateFreshDetailedInterviewQuestions(resumeText, previousQuestions = [], attemptSeed = Date.now()) {
+  const styles = ["technical", "HR", "project-based", "behavioral", "company-angle", "problem-solving"];
+  const apiKey = process.env.NVIDIA_API_KEY;
+
+  if (!apiKey) {
+    return fallbackFreshInterviewQuestions(resumeText, previousQuestions, attemptSeed);
+  }
+
+  try {
+    const prompt = `Generate a fresh set of 5 interview questions. Return ONLY valid JSON array of objects.
+
+Resume:
+${String(resumeText || "").slice(0, 7000)}
+
+Previously used questions to avoid:
+${previousQuestions.slice(-40).map((q, i) => `${i + 1}. ${q}`).join("\n") || "None"}
+
+Required mix:
+- Use these styles across the set: ${styles.join(", ")}
+- Base questions on resume projects, skills, education, activities, and gaps.
+- Do not repeat or paraphrase previous questions.
+- Make this attempt feel new and personalized.
+
+For each object:
+- question: string
+- type: one of Technical, HR, Project-based, Behavioral, Company-angle, Problem-solving
+- company: string
+- answer: sample answer approach, 2-3 sentences
+- grounding: exact resume signal or gap being tested
+
+Return JSON array only:`;
+
+    const responseText = await callNvidiaAPI(prompt, true);
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
+    const fresh = Array.isArray(parsed)
+      ? parsed.filter((item) => item?.question && !isSimilarToPrevious(item.question, previousQuestions))
+      : [];
+
+    if (fresh.length >= 5) return fresh.slice(0, 5);
+
+    const fallback = fallbackFreshInterviewQuestions(resumeText, [...previousQuestions, ...fresh.map((item) => item.question)], attemptSeed);
+    return [...fresh, ...fallback].slice(0, 5);
+  } catch (error) {
+    console.warn("Failed to generate fresh detailed interview questions:", error.message);
+    return fallbackFreshInterviewQuestions(resumeText, previousQuestions, attemptSeed);
   }
 }

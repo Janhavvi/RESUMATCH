@@ -41,6 +41,19 @@ db.exec(`
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(resume_id) REFERENCES resumes(id)
   );
+
+  CREATE TABLE IF NOT EXISTS interview_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    resume_name TEXT,
+    resume_text TEXT,
+    questions_json TEXT NOT NULL,
+    overall_score INTEGER,
+    status TEXT DEFAULT 'Incomplete',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
 `);
 
 // Run migrations for existing databases

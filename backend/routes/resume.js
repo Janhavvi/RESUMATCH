@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import { parseResume } from "../services/parser.js";
-import { runJobMatch, runResumeAnalysis, runResumeAssistant, generateProfessionalSummary, improveWorkDescription, generateAchievements, improveProjectDescription } from "../services/ai.js";
+import { runJobMatch, runResumeAnalysis, runResumeAssistant, generateProfessionalSummary, improveWorkDescription, generateAchievements, improveProjectDescription, generateDetailedInterviewQuestions } from "../services/ai.js";
 import { generateResumePDF } from "../services/pdf.js";
 import { uploadToBlob } from "../services/blob.js";
 import db from "../lib/db.js";
@@ -341,6 +341,25 @@ router.get("/ai/test", async (req, res) => {
       message: error.message,
       configured: !!process.env.NVIDIA_API_KEY
     });
+  }
+});
+
+/**
+ * Generate interview questions from resume text
+ */
+router.post("/interview", async (req, res) => {
+  try {
+    const { resumeText } = req.body || {};
+    
+    if (!resumeText || !resumeText.trim()) {
+      return res.status(400).json({ error: "Resume text is required" });
+    }
+
+    const questions = await generateDetailedInterviewQuestions(resumeText.trim());
+    res.json({ questions });
+  } catch (error) {
+    console.error("Interview generation error:", error);
+    res.status(500).json({ error: "Failed to generate interview questions" });
   }
 });
 

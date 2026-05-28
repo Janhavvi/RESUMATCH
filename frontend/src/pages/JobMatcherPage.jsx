@@ -102,7 +102,7 @@ export const JobMatcherPage = () => {
                   disabled={!jobDescription || isMatching}
                   className={`
                     px-14 py-5 rounded-2xl font-black uppercase tracking-widest flex items-center gap-3 transition-all text-sm
-                    ${!jobDescription || isMatching 
+                    ${!jobDescription || isMatching
                         ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5' 
                         : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-2xl shadow-indigo-500/30 border border-indigo-400'}
                   `}

@@ -10,6 +10,11 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ResumeAnalyzerPage } from './pages/ResumeAnalyzerPage';
 import { JobMatcherPage } from './pages/JobMatcherPage';
 import { ResumeBuilderPage } from './pages/ResumeBuilderPage';
+import { AIInterviewPage } from './pages/AIInterviewPage';
+import { JobApplicationDashboard } from './pages/JobApplicationDashboard';
+import { VoiceInterviewPage } from './pages/VoiceInterviewPage';
+import { PrivacyScannerPage } from './pages/PrivacyScannerPage';
+import { SkillRoadmapPage } from './pages/SkillRoadmapPage';
 import { LoginPage } from './pages/LoginPage';
 
 export default function App() {
@@ -23,6 +28,11 @@ export default function App() {
           <Route path="/ats-checker" element={<ResumeAnalyzerPage />} />
           <Route path="/job-match" element={<JobMatcherPage />} />
           <Route path="/builder" element={<ResumeBuilderPage />} />
+          <Route path="/interview" element={<AIInterviewPage />} />
+          <Route path="/voice-interview" element={<VoiceInterviewPage />} />
+          <Route path="/applications" element={<JobApplicationDashboard />} />
+          <Route path="/privacy-scanner" element={<PrivacyScannerPage />} />
+          <Route path="/skill-roadmap" element={<SkillRoadmapPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

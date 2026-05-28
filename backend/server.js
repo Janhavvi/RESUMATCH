@@ -7,6 +7,10 @@ import fs from "fs";
 import net from "net";
 import resumeRoutes from "./routes/resume.js";
 import authRoutes from "./routes/auth.js";
+import jobsRoutes from "./routes/jobs.js";
+import privacyRoutes from "./routes/privacy.js";
+import interviewRoutes from "./routes/interviews.js";
+import skillsRoutes from "./routes/skills.js";
 import { initializeDatabase } from "./lib/db-adapter.js";
 
 // Load environment variables from root directory
@@ -95,6 +99,11 @@ async function startServer() {
 
   app.use("/api/resume", resumeRoutes);
   app.use("/api/auth", authRoutes);
+  app.use("/api/jobs", jobsRoutes);
+  app.use("/api/privacy", privacyRoutes);
+  app.use("/api/interview", interviewRoutes);
+  app.use("/api/interviews", interviewRoutes);
+  app.use("/api/skills", skillsRoutes);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

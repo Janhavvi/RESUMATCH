@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, BarChart3, Search, LogOut, Menu, X, Rocket } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, LogOut, Menu, X, Rocket, BrainCircuit, Shield, Lightbulb, Mic } from 'lucide-react';
 import { apiFetch } from '../lib/api.js';
 const sidebarItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'AI Analyzer', path: '/analyzer', icon: Search },
-  { name: 'ATS Score', path: '/ats-checker', icon: BarChart3 },
+  { name: 'AI Analyzer + ATS Score', path: '/analyzer', activePaths: ['/analyzer', '/ats-checker'], icon: Search },
   { name: 'Job Match', path: '/job-match', icon: Rocket },
+  { name: 'AI Interview', path: '/interview', icon: BrainCircuit },
+  { name: 'Voice Interview', path: '/voice-interview', icon: Mic },
+  { name: 'Privacy Center', path: '/privacy-scanner', icon: Shield },
+  { name: 'Skill Roadmap', path: '/skill-roadmap', icon: Lightbulb },
   { name: 'Resume Builder', path: '/builder', icon: FileText },
 ];
 
@@ -92,7 +95,7 @@ export const MainLayout = ({ children }) => {
           <nav className="flex-1 space-y-2">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive = (item.activePaths || [item.path]).includes(location.pathname);
               return (
                 <Link
                   key={item.path}

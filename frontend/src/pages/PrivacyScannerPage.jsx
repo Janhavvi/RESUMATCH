@@ -213,8 +213,8 @@ export const PrivacyScannerPage = () => {
   const activeContent = useMemo(() => {
     if (!scanResult) return '';
     if (activeMode !== 'current') return scanResult.versions?.[activeMode] || scanResult.redactedContent || '';
-    return applyRedactions(originalContent || resumeContent, scanResult.risks, enabledTypes);
-  }, [activeMode, enabledTypes, originalContent, resumeContent, scanResult]);
+    return applyRedactions(originalContent || resumeContent, scanResult.risks, enabledTypes, selectedRiskIds);
+  }, [activeMode, enabledTypes, originalContent, resumeContent, scanResult, selectedRiskIds]);
 
   const selectedContent = useMemo(() => {
     if (!scanResult) return '';
@@ -359,6 +359,7 @@ export const PrivacyScannerPage = () => {
   };
 
   const toggleRisk = (riskId) => {
+    setActiveMode('current');
     setSelectedRiskIds((current) =>
       current.includes(riskId) ? current.filter((id) => id !== riskId) : [...current, riskId]
     );
@@ -366,12 +367,12 @@ export const PrivacyScannerPage = () => {
 
   const applyAllRedactions = () => {
     if (!scanResult) return;
+    setActiveMode('current');
     setSelectedRiskIds(scanResult.risks.map((risk) => risk.id));
-    setResumeContent(activeContent);
   };
 
   const applySelectedRedactions = () => {
-    setResumeContent(selectedContent);
+    setActiveMode('current');
   };
 
   const restoreOriginal = () => {
@@ -482,7 +483,10 @@ export const PrivacyScannerPage = () => {
               {PRIVACY_SETTINGS.map((setting) => (
                 <button
                   key={setting.key}
-                  onClick={() => setSettings((current) => ({ ...current, [setting.key]: !current[setting.key] }))}
+                  onClick={() => {
+                    setActiveMode('current');
+                    setSettings((current) => ({ ...current, [setting.key]: !current[setting.key] }));
+                  }}
                   className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all ${
                     settings[setting.key] ? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100' : 'border-white/10 bg-white/[0.03] text-slate-400'
                   }`}

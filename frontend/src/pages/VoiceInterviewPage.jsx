@@ -46,7 +46,9 @@ const ROLE_OPTIONS = [
 
 const INTERVIEW_TYPES = ['Resume Based', 'Technical', 'Behavioral', 'Project Based', 'System Design', 'HR', 'Final Round'];
 const DIFFICULTIES = ['Beginner', 'Intermediate', 'Advanced', 'Strict Mode'];
+const START_SESSION_TIMEOUT_MS = 12000;
 const INITIAL_WAVE = Array.from({ length: 28 }, (_, index) => 18 + ((index * 7) % 38));
+const TTS_BLOCKED_MESSAGE = 'Browser text-to-speech was blocked. Press Repeat once, or allow sound/autoplay for this site.';
 
 const formatClock = (seconds) => {
   const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -66,6 +68,12 @@ const verdictFor = (score) => {
   if (score >= 4.8) return 'Needs Improvement';
   return 'Not Ready';
 };
+
+const normalizeSpeechText = (question) => (
+  typeof question === 'string'
+    ? question
+    : String(question?.question || question?.text || '')
+).trim();
 
 export const VoiceInterviewPage = () => {
   const [sessionId, setSessionId] = useState(null);
@@ -118,6 +126,8 @@ export const VoiceInterviewPage = () => {
   const pausedRef = useRef(false);
   const retryCountRef = useRef(0);
   const heardSpeechRef = useRef(false);
+  const selectedVoiceRef = useRef(null);
+  const speechFallbackTimerRef = useRef(null);
 
   const currentQuestion = questions[currentQuestionIndex] || '';
   const strictModeEnabled = interviewConfig.strictMode || interviewConfig.difficulty === 'Strict Mode';
@@ -220,6 +230,43 @@ export const VoiceInterviewPage = () => {
     ].filter(Boolean);
     setUserAnswer(parts.join(' ').replace(/\s+/g, ' '));
   }, []);
+
+  const loadSpeechVoice = useCallback(() => {
+    const synth = window.speechSynthesis;
+    if (!synth) return null;
+    const voices = synth.getVoices();
+    const preferredVoice = voices.find((voice) => /^en/i.test(voice.lang) && /google|microsoft|zira|samantha|english/i.test(voice.name))
+      || voices.find((voice) => /^en/i.test(voice.lang))
+      || voices[0]
+      || null;
+    selectedVoiceRef.current = preferredVoice;
+    return preferredVoice;
+  }, []);
+
+  const primeSpeechSynthesis = useCallback(() => {
+    const synth = window.speechSynthesis;
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') {
+      setSpeechError('Text-to-speech is not supported in this browser. You can still read the question on screen.');
+      return false;
+    }
+
+    synthesisRef.current = synth;
+    loadSpeechVoice();
+
+    try {
+      synth.cancel();
+      if (synth.paused) synth.resume();
+      const unlockUtterance = new SpeechSynthesisUtterance('Ready.');
+      unlockUtterance.volume = 0.01;
+      unlockUtterance.rate = 1;
+      unlockUtterance.voice = selectedVoiceRef.current || null;
+      synth.speak(unlockUtterance);
+      return true;
+    } catch {
+      setSpeechError(TTS_BLOCKED_MESSAGE);
+      return false;
+    }
+  }, [loadSpeechVoice]);
 
   const configureRecognition = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -338,16 +385,22 @@ export const VoiceInterviewPage = () => {
   useEffect(() => {
     configureRecognition();
     synthesisRef.current = window.speechSynthesis;
+    loadSpeechVoice();
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = loadSpeechVoice;
+    }
     requestMicrophonePermission();
     return () => {
       desiredRecordingRef.current = false;
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
       if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
+      if (speechFallbackTimerRef.current) clearTimeout(speechFallbackTimerRef.current);
       if (recognitionRef.current) recognitionRef.current.abort();
       if (synthesisRef.current) synthesisRef.current.cancel();
+      if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null;
       cleanupAudio();
     };
-  }, [cleanupAudio, configureRecognition, requestMicrophonePermission]);
+  }, [cleanupAudio, configureRecognition, loadSpeechVoice, requestMicrophonePermission]);
 
   useEffect(() => {
     if (isRecording && !isPaused) {
@@ -386,26 +439,71 @@ export const VoiceInterviewPage = () => {
   };
 
   const speakQuestion = (question) => new Promise((resolve) => {
-    if (!synthesisRef.current || !question) return resolve();
-    synthesisRef.current.cancel();
-    const utterance = new SpeechSynthesisUtterance(question);
+    const text = normalizeSpeechText(question);
+    const synth = window.speechSynthesis || synthesisRef.current;
+
+    if (!text) return resolve(false);
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') {
+      setSpeechError('Text-to-speech is not supported in this browser. You can still read the question on screen.');
+      return resolve(false);
+    }
+
+    synthesisRef.current = synth;
+    loadSpeechVoice();
+    if (speechFallbackTimerRef.current) clearTimeout(speechFallbackTimerRef.current);
+
+    let started = false;
+    let settled = false;
+    const settle = (value) => {
+      if (settled) return;
+      settled = true;
+      if (speechFallbackTimerRef.current) clearTimeout(speechFallbackTimerRef.current);
+      resolve(value);
+    };
+
+    synth.cancel();
+    if (synth.paused) synth.resume();
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.94;
     utterance.pitch = 0.88;
     utterance.volume = 1;
+    utterance.voice = selectedVoiceRef.current || null;
     utterance.onstart = () => {
+      started = true;
+      setSpeechError('');
       setIsSpeaking(true);
       setInterviewState('Speaking');
     };
     utterance.onend = () => {
       setIsSpeaking(false);
       setInterviewState('Listening');
-      resolve();
+      settle(true);
     };
-    utterance.onerror = () => {
+    utterance.onerror = (event) => {
       setIsSpeaking(false);
-      resolve();
+      setInterviewState('Listening');
+      if (!['canceled', 'interrupted'].includes(event.error)) {
+        setSpeechError(TTS_BLOCKED_MESSAGE);
+      }
+      settle(false);
     };
-    synthesisRef.current.speak(utterance);
+    synth.speak(utterance);
+
+    speechFallbackTimerRef.current = setTimeout(() => {
+      if (started || settled) return;
+      try {
+        synth.resume();
+      } catch {
+        // Some browsers throw when resume is unavailable.
+      }
+      window.setTimeout(() => {
+        if (started || settled) return;
+        setIsSpeaking(false);
+        setInterviewState('Listening');
+        setSpeechError(TTS_BLOCKED_MESSAGE);
+        settle(false);
+      }, 800);
+    }, 1200);
   });
 
   const startSession = async () => {
@@ -413,13 +511,18 @@ export const VoiceInterviewPage = () => {
       alert('Please paste or upload your resume first.');
       return;
     }
+    let timeoutId;
     try {
+      primeSpeechSynthesis();
       setLoading(true);
       setInterviewState('Thinking');
+      const controller = new AbortController();
+      timeoutId = window.setTimeout(() => controller.abort(), START_SESSION_TIMEOUT_MS);
       const response = await apiFetch('/api/interviews/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeText, interviewConfig }),
+        signal: controller.signal,
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.error || 'Failed to start interview session');
@@ -433,10 +536,11 @@ export const VoiceInterviewPage = () => {
       setCurrentQuestionIndex(0);
       setFeedback(null);
       setUserAnswer('');
-      await speakQuestion(data.session.questions?.[0]);
+      speakQuestion(data.session.questions?.[0]).catch(() => null);
     } catch (error) {
-      alert(error.message || 'Failed to start interview session');
+      alert(error.name === 'AbortError' ? 'Interview start timed out. Please try again.' : error.message || 'Failed to start interview session');
     } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
       setLoading(false);
     }
   };

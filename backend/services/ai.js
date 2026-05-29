@@ -31,6 +31,15 @@ const COMMON_TECH_SKILLS = [
 // Nvidia API endpoint for chat completions
 const NVIDIA_API_BASE = "https://integrate.api.nvidia.com/v1";
 
+const QUESTION_STYLE_SUFFIXES = [
+  "Frame the answer around architecture, constraints, and measurable impact.",
+  "Use one concrete example, one tradeoff, and one lesson learned.",
+  "Focus on debugging steps, evidence, and communication under pressure.",
+  "Answer as if a hiring manager will probe your exact ownership.",
+  "Include what you would improve if you had one more week.",
+  "Connect the answer to users, business value, or stakeholder outcomes.",
+];
+
 function tokenize(text) {
   return (text || "")
     .toLowerCase()
@@ -287,7 +296,10 @@ async function callNvidiaAPI(prompt, isJsonMode = false) {
     throw new Error("NVIDIA_API_KEY not configured");
   }
 
-  const model = process.env.NVIDIA_MODEL || "nvidia/llama-2-70b-chat";
+  const configuredModel = process.env.NVIDIA_MODEL;
+  const model = !configuredModel || configuredModel === "nvidia/llama-2-70b-chat"
+    ? "nvidia/llama-3.1-nemotron-70b-instruct"
+    : configuredModel;
   const timeoutMs = Number(process.env.NVIDIA_TIMEOUT_MS || 12000);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -316,7 +328,7 @@ async function callNvidiaAPI(prompt, isJsonMode = false) {
         ],
         temperature: 0.7,
         top_p: 0.9,
-        max_tokens: 2048,
+        max_tokens: isJsonMode ? 4096 : 2048,
       }),
     });
 
@@ -897,6 +909,66 @@ function certificationsForSkill(skill = "") {
   ];
 }
 
+function sanitizeRoadmapSkill(skillItem = {}, fallbackSkill = {}, skillName = "", targetRole = "") {
+  const skillLabel = String(skillItem.skill || fallbackSkill.skill || skillName || "").trim();
+  if (!skillLabel) return fallbackSkill;
+  const fallbackResources = Array.isArray(fallbackSkill.learningResources) ? fallbackSkill.learningResources : [];
+  const fallbackMilestones = Array.isArray(fallbackSkill.milestones) ? fallbackSkill.milestones : [];
+  const fallbackProjects = Array.isArray(fallbackSkill.projects) ? fallbackSkill.projects : [];
+  const aiResources = Array.isArray(skillItem.learningResources) ? skillItem.learningResources : [];
+  const resources = [...fallbackResources, ...aiResources].filter((item, index, list) => {
+    const title = String(item?.title || item || "").toLowerCase();
+    const url = String(item?.url || "").toLowerCase();
+    return title && list.findIndex((candidate) => {
+      const candidateTitle = String(candidate?.title || candidate || "").toLowerCase();
+      const candidateUrl = String(candidate?.url || "").toLowerCase();
+      return candidateTitle === title || (url && candidateUrl === url);
+    }) === index;
+  }).slice(0, 4);
+  const certifications = Array.isArray(skillItem.certifications) && skillItem.certifications.length
+    ? skillItem.certifications
+    : (fallbackSkill.certifications || certificationsForSkill(skillLabel));
+  const milestones = Array.isArray(skillItem.milestones) && skillItem.milestones.length
+    ? skillItem.milestones
+    : fallbackMilestones;
+  const projects = Array.isArray(skillItem.projects) && skillItem.projects.length
+    ? skillItem.projects
+    : fallbackProjects;
+
+  return {
+    ...fallbackSkill,
+    ...skillItem,
+    skill: skillLabel,
+    whyItMatters: skillItem.whyItMatters || fallbackSkill.whyItMatters || `${skillLabel} is a hiring signal for ${targetRole || "the target role"} when backed by practical proof.`,
+    targetOutcome: skillItem.targetOutcome || fallbackSkill.targetOutcome || `Build and explain a practical ${skillLabel} artifact.`,
+    prerequisites: Array.isArray(skillItem.prerequisites) && skillItem.prerequisites.length
+      ? skillItem.prerequisites
+      : (fallbackSkill.prerequisites || []),
+    learningResources: resources,
+    certifications,
+    milestones: milestones.map((milestone, index) => ({
+      ...(fallbackMilestones[index] || {}),
+      ...milestone,
+      learningResources: Array.isArray(milestone.learningResources) && milestone.learningResources.length
+        ? milestone.learningResources
+        : (fallbackMilestones[index]?.learningResources || resources.slice(0, 2)),
+      projects: Array.isArray(milestone.projects) && milestone.projects.length
+        ? milestone.projects
+        : (fallbackMilestones[index]?.projects || projects.slice(0, 1)),
+    })),
+    projects: projects.map((project, index) => ({
+      ...(fallbackProjects[index] || {}),
+      ...project,
+      technologies: Array.isArray(project.technologies) && project.technologies.length
+        ? project.technologies
+        : (fallbackProjects[index]?.technologies || [skillLabel]),
+      learningResources: Array.isArray(project.learningResources) && project.learningResources.length
+        ? project.learningResources
+        : (fallbackProjects[index]?.learningResources || resources.slice(0, 2).map((item) => item.title || item)),
+    })),
+  };
+}
+
 export async function generateSkillRoadmap(missingSkills, targetRole = "") {
   const apiKey = process.env.NVIDIA_API_KEY;
   const normalizedSkills = Array.isArray(missingSkills)
@@ -978,7 +1050,7 @@ Return as JSON ONLY:`;
     const sanitizedSkills = (normalizedSkills.length ? normalizedSkills : roleTemplate.gaps)
       .map((skill) => {
         const aiSkill = aiSkills.find((item) => String(item.skill || "").trim().toLowerCase() === skill.toLowerCase());
-        return aiSkill || fallbackBySkill.get(skill.toLowerCase());
+        return sanitizeRoadmapSkill(aiSkill, fallbackBySkill.get(skill.toLowerCase()), skill, targetRole);
       })
       .filter(Boolean);
     return { skills: sanitizedSkills.length ? sanitizedSkills : fallbackSkills };
@@ -1180,14 +1252,36 @@ function fallbackFreshInterviewQuestions(resumeText = "", previousQuestions = []
     },
   ];
 
-  const rotated = styleSets.slice(seed % styleSets.length).concat(styleSets.slice(0, seed % styleSets.length));
-  const fresh = rotated.filter((item) => !isSimilarToPrevious(item.question, previousQuestions));
-  return (fresh.length ? fresh : rotated)
-    .slice(0, 5)
-    .map((item, index) => ({
-      ...item,
-      question: fresh.length ? item.question : `${item.question} Focus your answer on attempt ${index + 1} and include one concrete metric.`,
-    }));
+  const rotation = seed % styleSets.length;
+  const rotated = styleSets.slice(rotation).concat(styleSets.slice(0, rotation));
+  const selected = [];
+  let attempt = 0;
+
+  while (selected.length < 5 && attempt < rotated.length * 3) {
+    const base = rotated[attempt % rotated.length];
+    const suffix = QUESTION_STYLE_SUFFIXES[(seed + attempt + selected.length) % QUESTION_STYLE_SUFFIXES.length];
+    const candidate = {
+      ...base,
+      question: attempt < rotated.length
+        ? base.question
+        : `${base.question} ${suffix}`,
+    };
+    if (!isSimilarToPrevious(candidate.question, [...previousQuestions, ...selected.map((item) => item.question)])) {
+      selected.push(candidate);
+    }
+    attempt += 1;
+  }
+
+  while (selected.length < 5) {
+    const base = rotated[(selected.length + rotation) % rotated.length];
+    const suffix = QUESTION_STYLE_SUFFIXES[(seed + selected.length) % QUESTION_STYLE_SUFFIXES.length];
+    selected.push({
+      ...base,
+      question: `${base.question} ${suffix}`,
+    });
+  }
+
+  return selected.slice(0, 5);
 }
 
 export async function generateFreshDetailedInterviewQuestions(resumeText, previousQuestions = [], attemptSeed = Date.now()) {

@@ -5,8 +5,15 @@ import PDFDocument from "pdfkit";
 import { generateFreshDetailedInterviewQuestions } from "../services/ai.js";
 
 const router = express.Router();
-const INTERVIEW_GENERATION_TIMEOUT_MS = 25000;
+const INTERVIEW_GENERATION_TIMEOUT_MS = 15000;
 const volatileInterviewSessions = new Map();
+const QUESTION_VARIANTS = [
+  "Anchor your answer in a specific example and one measurable outcome.",
+  "Explain the tradeoff you considered and how you validated the result.",
+  "Answer from the perspective of your exact ownership, not the team's work.",
+  "Include what you would improve if you repeated the work today.",
+  "Show how you communicated risk, progress, or decisions to others.",
+];
 
 function createVolatileId() {
   return `mem_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -51,6 +58,14 @@ function scoreSession(questions = []) {
 
 function isCompleted(questions = []) {
   return questions.length > 0 && questions.every((q) => String(q.userAnswer || "").trim());
+}
+
+function normalizeQuestionText(question = "") {
+  return String(question || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function fallbackInterviewQuestions(resumeText = "") {
@@ -119,14 +134,32 @@ function normalizeGeneratedQuestion(item = {}, index = 0, resumeText = "") {
 }
 
 function ensureFiveQuestions(items = [], resumeText = "", count = 5) {
-  const normalized = (Array.isArray(items) ? items : [])
-    .map((item, index) => normalizeGeneratedQuestion(item, index, resumeText))
-    .filter((item) => item.question)
-    .slice(0, count);
+  const seen = new Set();
+  const normalized = [];
+
+  for (const [index, item] of (Array.isArray(items) ? items : []).entries()) {
+    const question = normalizeGeneratedQuestion(item, index, resumeText);
+    const signature = normalizeQuestionText(question.question);
+    if (!question.question || seen.has(signature)) continue;
+    seen.add(signature);
+    normalized.push(question);
+    if (normalized.length >= count) break;
+  }
 
   const fallbacks = fallbackInterviewQuestions(resumeText);
+  let attempt = 0;
   while (normalized.length < count) {
-    normalized.push(normalizeGeneratedQuestion(fallbacks[normalized.length % fallbacks.length], normalized.length, resumeText));
+    const fallback = normalizeGeneratedQuestion(fallbacks[attempt % fallbacks.length], normalized.length, resumeText);
+    const suffix = QUESTION_VARIANTS[(Date.now() + attempt + normalized.length) % QUESTION_VARIANTS.length];
+    const candidate = attempt >= fallbacks.length
+      ? { ...fallback, question: `${fallback.question} ${suffix}` }
+      : fallback;
+    const signature = normalizeQuestionText(candidate.question);
+    if (!seen.has(signature)) {
+      seen.add(signature);
+      normalized.push(candidate);
+    }
+    attempt += 1;
   }
   return normalized;
 }
@@ -403,8 +436,11 @@ function generateRoleSpecificQuestions({ role, resumeText, interviewConfig = {},
   }
 
   while (selected.length < 6) {
-    const fallback = `${rotated[selected.length % rotated.length]} Include one concrete example and one measurable result.`;
-    selected.push(isSimilarQuestion(fallback, [...history, ...selected]) ? `${fallback} Session angle ${selected.length + 1}.` : fallback);
+    const attempt = selected.length + history.length + seed;
+    const base = rotated[attempt % rotated.length];
+    const variant = QUESTION_VARIANTS[attempt % QUESTION_VARIANTS.length];
+    const fallback = `${base} ${variant}`;
+    selected.push(isSimilarQuestion(fallback, [...history, ...selected]) ? `${base} ${variant} Use a different example from any previous answer.` : fallback);
   }
 
   return selected.map((question, index) => ({

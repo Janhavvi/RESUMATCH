@@ -285,6 +285,44 @@ function unique(items) {
   return [...new Set(items.map((item) => String(item || "").trim()).filter(Boolean))];
 }
 
+function slug(value = "") {
+  return encodeURIComponent(String(value || "").trim().replace(/\s+/g, " "));
+}
+
+function skillResource(skill = "", targetRole = "", index = 0) {
+  const roleLabel = targetRole || "target role";
+  const searches = [
+    resource(
+      `${skill} Official Docs and Examples`,
+      `Start with primary references and examples for ${skill}, then note how it applies to ${roleLabel}.`,
+      `https://www.google.com/search?q=${slug(`${skill} official documentation tutorial`)}`,
+      "Official sources",
+      "Beginner",
+      "3-5h",
+      "Documentation"
+    ),
+    resource(
+      `${skill} ${roleLabel} Project Search`,
+      `Find role-specific project walkthroughs and case studies that use ${skill} in a realistic workflow.`,
+      `https://www.google.com/search?q=${slug(`${skill} ${roleLabel} project tutorial`)}`,
+      "Curated search",
+      "Intermediate",
+      "4-8h",
+      "Project"
+    ),
+    resource(
+      `${skill} Practice Repositories`,
+      `Browse practical repositories and README examples for building portfolio proof around ${skill}.`,
+      `https://github.com/search?q=${slug(`${skill} ${roleLabel}`)}&type=repositories`,
+      "GitHub",
+      "Intermediate",
+      "Ongoing",
+      "Project"
+    ),
+  ];
+  return searches[index % searches.length];
+}
+
 function skillAppearsInText(text, skill) {
   const normalizedText = String(text || "").toLowerCase().replace(/[./]/g, "");
   const normalizedSkill = String(skill || "").toLowerCase().replace(/[./]/g, "");
@@ -322,9 +360,15 @@ export function getRoleResources(targetRole = "", skill = "") {
   const lowerSkill = String(skill || "").toLowerCase();
   const focused = template.resources.filter((item) => {
     const haystack = `${item.title} ${item.description} ${item.provider} ${item.type}`.toLowerCase();
-    return lowerSkill && haystack.includes(lowerSkill.split(" ")[0]);
+    const terms = lowerSkill.split(/\s+/).filter((term) => term.length > 2);
+    return terms.length && terms.some((term) => haystack.includes(term));
   });
-  return focused.length ? focused : template.resources;
+  const skillResources = [0, 1, 2].map((index) => skillResource(skill || "Role-Specific Skill", targetRole, index));
+  const roleResources = focused.length ? focused : template.resources.slice(0, 1);
+  const deduped = [...skillResources, ...roleResources].filter((item, index, list) => (
+    list.findIndex((candidate) => candidate.title === item.title || candidate.url === item.url) === index
+  ));
+  return deduped.slice(0, 4);
 }
 
 export function buildRoleRoadmapSkills(skillNames = [], targetRole = "") {
@@ -334,9 +378,14 @@ export function buildRoleRoadmapSkills(skillNames = [], targetRole = "") {
   return skills.map((skill, index) => {
     const milestoneOne = template.milestones[index % template.milestones.length] || skill;
     const milestoneTwo = template.milestones[(index + 1) % template.milestones.length] || skill;
+    const resources = getRoleResources(targetRole, skill);
     const projects = template.practiceProjects.map((item) => ({
       ...item,
       technologies: unique([skill, ...(item.technologies || [])]).slice(0, 5),
+      learningResources: [
+        `${skill} ${targetRole || "role"} implementation guide`,
+        ...(resources || []).slice(0, 2).map((resourceItem) => resourceItem.title),
+      ],
     }));
 
     return {
@@ -346,7 +395,7 @@ export function buildRoleRoadmapSkills(skillNames = [], targetRole = "") {
       whyItMatters: `${skill} is important for ${targetRole || "this role"} because it proves practical readiness beyond resume keywords.`,
       targetOutcome: `Create usable proof that demonstrates ${skill} through a role-specific workflow, artifact, or project.`,
       prerequisites: template.foundSkills.slice(0, 3),
-      learningResources: getRoleResources(targetRole, skill),
+      learningResources: resources,
       certifications: template.certifications,
       milestones: [
         {
@@ -362,7 +411,7 @@ export function buildRoleRoadmapSkills(skillNames = [], targetRole = "") {
           ],
           deliverables: [`${skill} notes and checklist`, "One reusable practice artifact"],
           estimatedHours: 6 + (index % 3),
-          learningResources: getRoleResources(targetRole, skill).slice(0, 2),
+          learningResources: resources.slice(0, 2),
           projects: projects.slice(0, 1),
         },
         {
@@ -378,7 +427,7 @@ export function buildRoleRoadmapSkills(skillNames = [], targetRole = "") {
           ],
           deliverables: ["Finished project artifact", "Resume bullet or case-study note"],
           estimatedHours: 9 + (index % 4),
-          learningResources: getRoleResources(targetRole, skill),
+          learningResources: resources,
           projects: projects.slice(0, 2),
         },
       ],

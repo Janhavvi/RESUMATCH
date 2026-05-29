@@ -23,7 +23,14 @@ import {
 import { apiFetch } from '../lib/api.js';
 
 const TABS = ['New Interview', 'Interview History', 'Saved Answers'];
-const GENERATION_TIMEOUT_MS = 30000;
+const GENERATION_TIMEOUT_MS = 18000;
+const QUESTION_VARIANTS = [
+  'Anchor your answer in one specific example and measurable outcome.',
+  'Explain the tradeoff, validation step, and result.',
+  'Focus on exact ownership and what you would improve now.',
+  'Include how you communicated decisions or risk.',
+  'Answer with a project detail that is not already obvious from the resume.',
+];
 
 function averageScore(questions = []) {
   const scores = questions.map((q) => Number(q.score)).filter((score) => Number.isFinite(score));
@@ -110,13 +117,19 @@ function createFallbackQuestions(resumeText = '') {
 
 function normalizeGeneratedQuestions(items = [], resumeText = '') {
   const source = Array.isArray(items) ? items : [];
-  const normalized = source
+  const seen = new Set();
+  const normalized = [];
+
+  source
     .filter((item) => item && typeof item === 'object' && String(item.question || '').trim())
-    .map((item, index) => {
+    .forEach((item, index) => {
+      const signature = String(item.question).toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (seen.has(signature) || normalized.length >= 5) return;
+      seen.add(signature);
       const sampleAnswer = item.sampleAnswer || item.answer || '';
       const category = item.category || item.type || 'Interview';
       const difficulty = item.difficulty || (index < 2 ? 'medium' : 'easy');
-      return {
+      normalized.push({
         ...item,
         question: String(item.question).trim(),
         sampleAnswer,
@@ -129,12 +142,15 @@ function normalizeGeneratedQuestions(items = [], resumeText = '') {
         userAnswer: item.userAnswer || '',
         feedback: item.feedback || '',
         score: item.score ?? null,
-      };
-    })
-    .slice(0, 5);
+      });
+    });
 
   if (normalized.length === 5) return normalized;
-  return createFallbackQuestions(resumeText).map((fallback, index) => normalized[index] || fallback);
+  return createFallbackQuestions(resumeText).map((fallback, index) => {
+    if (normalized[index]) return normalized[index];
+    const variant = QUESTION_VARIANTS[(Date.now() + index) % QUESTION_VARIANTS.length];
+    return index < normalized.length ? fallback : { ...fallback, question: `${fallback.question} ${variant}` };
+  });
 }
 
 export const AIInterviewPage = () => {

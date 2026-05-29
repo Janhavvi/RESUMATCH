@@ -218,8 +218,8 @@ const PATTERN_DEFINITIONS = [
 ];
 
 const REDACTION_PROFILES = {
-  recruiter: ["email", "phone", "full_address", "city_state_pincode", "exact_location", "aadhaar", "pan", "ssn", "passport", "driving_license", "school_id", "roll_number", "employee_id", "emergency_contact", "family_information", "date_of_birth", "age"],
-  public: ["email", "phone", "full_address", "city_state_pincode", "exact_location", "date_of_birth", "age", "aadhaar", "pan", "ssn", "passport", "driving_license", "school_id", "roll_number", "employee_id", "emergency_contact", "family_information"],
+  recruiter: ["full_address", "city_state_pincode", "exact_location", "aadhaar", "pan", "ssn", "passport", "driving_license", "school_id", "roll_number", "employee_id", "emergency_contact", "family_information", "date_of_birth", "age"],
+  public: ["email", "phone", "full_address", "city_state_pincode", "exact_location", "date_of_birth", "age", "aadhaar", "pan", "ssn", "passport", "driving_license", "school_id", "roll_number", "employee_id", "emergency_contact", "family_information", "linkedin", "github", "portfolio"],
   anonymous: Object.keys(RISK_COPY),
 };
 

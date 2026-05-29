@@ -276,9 +276,9 @@ export const LandingPage = () => {
             <div className="pt-20 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-10 text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">
                <p>© 2026 ResuMatch AI // Protocol Loaded</p>
                <div className="flex gap-10">
-                  <a href="#" className="hover:text-white transition-colors">Intelligence</a>
-                  <a href="#" className="hover:text-white transition-colors">Terminal</a>
-                  <a href="#" className="hover:text-white transition-colors">Repository</a>
+                  <a href="#features" className="hover:text-white transition-colors">Intelligence</a>
+                  <a href="#how-it-works" className="hover:text-white transition-colors">Architecture</a>
+                  <Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
                </div>
             </div>
          </div>

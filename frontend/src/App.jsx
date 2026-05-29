@@ -29,23 +29,12 @@ function ScrollToTop() {
   return null;
 }
 
-function RouteLoading() {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center px-6">
-      <div className="flex items-center gap-3 rounded-2xl border border-cyan-300/20 bg-white/[0.04] px-5 py-4 text-xs font-black uppercase tracking-[0.18em] text-cyan-100">
-        <span className="size-4 animate-spin rounded-full border-2 border-cyan-300/25 border-t-cyan-200" />
-        Loading
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   return (
     <Router>
       <ScrollToTop />
       <MainLayout>
-        <Suspense fallback={<RouteLoading />}>
+        <Suspense fallback={null}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />

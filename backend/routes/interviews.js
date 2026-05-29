@@ -6,6 +6,11 @@ import { generateFreshDetailedInterviewQuestions } from "../services/ai.js";
 
 const router = express.Router();
 const INTERVIEW_GENERATION_TIMEOUT_MS = 25000;
+const volatileInterviewSessions = new Map();
+
+function createVolatileId() {
+  return `mem_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function localUserId(req) {
   return req.user?.id || (isMongoDBAvailable() ? "000000000000000000000001" : 1);
@@ -147,7 +152,10 @@ async function previousQuestionTexts(userId) {
     const sessions = await InterviewSession.find({ userId }).select("questions.question").sort({ createdAt: -1 }).limit(30);
     return sessions.flatMap((session) => session.questions?.map((q) => q.question).filter(Boolean) || []);
   }
-  throw new Error("MongoDB is not connected. SQLite fallback has been disabled.");
+  return Array.from(volatileInterviewSessions.values())
+    .filter((session) => String(session.userId) === String(userId))
+    .flatMap((session) => session.questions?.map((q) => q.question).filter(Boolean) || [])
+    .slice(-150);
 }
 
 const SUPPORTED_VOICE_ROLES = [
@@ -513,7 +521,26 @@ async function saveGeneratedSession({ userId, resumeText, resumeName, questions,
     return normalizeSession(session);
   }
 
-  throw new Error("MongoDB is not connected. SQLite fallback has been disabled.");
+  const now = new Date();
+  const session = {
+    id: createVolatileId(),
+    userId,
+    resumeName,
+    resumeText,
+    role,
+    interviewType,
+    difficulty,
+    strictMode: Boolean(strictMode),
+    askedQuestions: askedQuestions || normalizedQuestions.map((item) => item.question),
+    questions: normalizedQuestions,
+    overallScore: null,
+    status: "Incomplete",
+    duration: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+  volatileInterviewSessions.set(session.id, session);
+  return session;
 }
 
 async function getHistorySessions(userId) {
@@ -521,7 +548,10 @@ async function getHistorySessions(userId) {
     const sessions = await InterviewSession.find({ userId }).sort({ createdAt: -1 }).limit(50);
     return sessions.map(normalizeSession);
   }
-  throw new Error("MongoDB is not connected. SQLite fallback has been disabled.");
+  return Array.from(volatileInterviewSessions.values())
+    .filter((session) => String(session.userId) === String(userId))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 50);
 }
 
 async function getHistorySession(userId, id) {
@@ -529,7 +559,8 @@ async function getHistorySession(userId, id) {
     const session = await InterviewSession.findOne({ _id: id, userId });
     return normalizeSession(session);
   }
-  throw new Error("MongoDB is not connected. SQLite fallback has been disabled.");
+  const session = volatileInterviewSessions.get(String(id));
+  return session && String(session.userId) === String(userId) ? session : null;
 }
 
 async function saveSessionAnswers(userId, id, questions) {
@@ -546,7 +577,18 @@ async function saveSessionAnswers(userId, id, questions) {
     return normalizeSession(session);
   }
 
-  throw new Error("MongoDB is not connected. SQLite fallback has been disabled.");
+  const session = volatileInterviewSessions.get(String(id));
+  if (!session || String(session.userId) !== String(userId)) return null;
+  const updated = {
+    ...session,
+    questions,
+    overallScore: average,
+    status,
+    completedAt: status === "Completed" ? new Date() : session.completedAt,
+    updatedAt: new Date(),
+  };
+  volatileInterviewSessions.set(String(id), updated);
+  return updated;
 }
 
 async function completeHistorySession(userId, id, duration = 0) {
@@ -568,7 +610,16 @@ async function completeHistorySession(userId, id, duration = 0) {
     return normalizeSession(updated);
   }
 
-  throw new Error("MongoDB is not connected. SQLite fallback has been disabled.");
+  const updated = {
+    ...session,
+    overallScore,
+    status: "Completed",
+    completedAt: new Date(),
+    duration,
+    updatedAt: new Date(),
+  };
+  volatileInterviewSessions.set(String(id), updated);
+  return updated;
 }
 
 async function deleteHistorySession(userId, id) {
@@ -576,7 +627,9 @@ async function deleteHistorySession(userId, id) {
     const result = await InterviewSession.findOneAndDelete({ _id: id, userId });
     return Boolean(result);
   }
-  throw new Error("MongoDB is not connected. SQLite fallback has been disabled.");
+  const session = volatileInterviewSessions.get(String(id));
+  if (!session || String(session.userId) !== String(userId)) return false;
+  return volatileInterviewSessions.delete(String(id));
 }
 
 // Generate and save a fresh AI interview simulator session
@@ -706,6 +759,11 @@ router.post("/start", async (req, res) => {
     // If resumeId provided, verify it belongs to user
     let finalResumeText = resumeText;
     if (resumeId) {
+      if (!isMongoDBAvailable()) {
+        return res.status(503).json({
+          error: "Resume lookup needs MongoDB. Paste resume text directly to start a voice interview.",
+        });
+      }
       const resume = await Resume.findOne({ _id: resumeId, userId });
       if (!resume) {
         return res.status(404).json({ error: "Resume not found" });

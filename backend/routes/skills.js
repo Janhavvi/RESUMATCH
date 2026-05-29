@@ -9,12 +9,17 @@ router.post("/generate", async (req, res) => {
   try {
     const { resumeId, jobId, missingSkills, targetRole } = req.body;
     const userId = req.user?.id || "000000000000000000000001";
+    const role = String(targetRole || "").trim();
 
-    if (!missingSkills || missingSkills.length === 0) {
+    if (!role) {
       return res.status(400).json({ 
-        error: "missingSkills array is required" 
+        error: "Choose a target role first." 
       });
     }
+
+    const normalizedMissingSkills = Array.isArray(missingSkills)
+      ? missingSkills.map((skill) => String(skill || "").trim()).filter(Boolean)
+      : [];
 
     // If resumeId provided, verify it belongs to user
     if (resumeId) {
@@ -25,14 +30,14 @@ router.post("/generate", async (req, res) => {
     }
 
     // Generate roadmap with projects for each skill
-    const roadmapData = await generateSkillRoadmap(missingSkills, targetRole);
+    const roadmapData = await generateSkillRoadmap(normalizedMissingSkills, role);
 
     const roadmapPayload = {
       userId,
       resumeId: resumeId || null,
       jobId: jobId || null,
       missingSkills: roadmapData.skills,
-      createdFor: targetRole || "Target Role",
+      createdFor: role,
       targetCompletionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     };
 
@@ -63,20 +68,21 @@ router.post("/generate-from-resume", async (req, res) => {
   try {
     const { resumeId, resumeText, extraSkills = [], targetRole } = req.body;
     const userId = req.user?.id || "000000000000000000000001";
+    const role = String(targetRole || "").trim();
 
     const normalizedExtras = Array.isArray(extraSkills)
       ? extraSkills.map((skill) => String(skill || "").trim()).filter(Boolean)
       : [];
 
-    if (!resumeText && normalizedExtras.length === 0) {
+    if (!role) {
       return res.status(400).json({
-        error: "Upload a resume or add at least one extra skill.",
+        error: "Choose a target role first.",
       });
     }
 
     const skillGapResult = await inferSkillGapsFromResume(
       resumeText || "",
-      targetRole || "Target Role",
+      role,
       normalizedExtras
     );
 
@@ -95,13 +101,13 @@ router.post("/generate-from-resume", async (req, res) => {
       });
     }
 
-    const roadmapData = await generateSkillRoadmap(missingSkills, targetRole || "Target Role");
+    const roadmapData = await generateSkillRoadmap(missingSkills, role);
     const roadmapPayload = {
       userId,
       resumeId: resumeId || null,
       jobId: null,
       missingSkills: roadmapData.skills || [],
-      createdFor: targetRole || "Target Role",
+      createdFor: role,
       targetCompletionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       sourceSummary: skillGapResult.sourceSummary,
       detectedSkills: skillGapResult.detectedSkills || [],

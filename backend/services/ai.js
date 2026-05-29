@@ -14,6 +14,12 @@ const ATS_KEYWORDS = [
   "leadership", "communication", "problem solving", "data analysis"
 ];
 
+import {
+  buildRoleRoadmapSkills,
+  getRoleTemplate,
+  inferRoleSkillGaps,
+} from "./roleSkillMap.js";
+
 const COMMON_TECH_SKILLS = [
   "HTML", "CSS", "JavaScript", "TypeScript", "React", "Node.js", "Express",
   "Python", "Java", "C++", "SQL", "MongoDB", "PostgreSQL", "MySQL", "Git",
@@ -748,49 +754,15 @@ Return as JSON ONLY:`;
  */
 export async function inferSkillGapsFromResume(resumeText, targetRole = "", extraSkills = []) {
   const apiKey = process.env.NVIDIA_API_KEY;
-  const lowerResume = String(resumeText || "").toLowerCase();
-  const role = String(targetRole || "target role").trim();
+  const role = String(targetRole || "").trim();
   const extras = Array.isArray(extraSkills)
     ? extraSkills.map((skill) => String(skill || "").trim()).filter(Boolean)
     : [];
-
-  const roleSkillMap = {
-    frontend: ["React", "TypeScript", "Responsive UI", "API Integration", "Testing"],
-    backend: ["Node.js", "REST APIs", "SQL", "Authentication", "Testing"],
-    fullstack: ["React", "Node.js", "SQL", "API Integration", "Deployment"],
-    "full-stack": ["React", "Node.js", "SQL", "API Integration", "Deployment"],
-    data: ["SQL", "Python", "Data Visualization", "Statistics", "Dashboarding"],
-    devops: ["Docker", "Kubernetes", "CI/CD", "Cloud Deployment", "Monitoring"],
-    cloud: ["AWS", "Docker", "CI/CD", "Infrastructure as Code", "Monitoring"],
-    ai: ["Python", "Machine Learning", "Prompt Engineering", "Model Evaluation", "Vector Databases"],
-    ml: ["Python", "Machine Learning", "Model Evaluation", "Feature Engineering", "MLOps"],
-  };
-
-  const roleLower = role.toLowerCase();
-  const targetSkills = Object.entries(roleSkillMap).find(([keyword]) => roleLower.includes(keyword))?.[1]
-    || ["Git", "API Integration", "Testing", "Deployment", "Technical Documentation"];
-
-  const fallbackSkills = targetSkills.filter((skill) => !lowerResume.includes(skill.toLowerCase()));
-  const detectedResumeSkills = COMMON_TECH_SKILLS.filter((skill) => {
-    const normalized = skill.toLowerCase().replace(/\./g, "");
-    const resumeNormalized = lowerResume.replace(/\./g, "");
-    return lowerResume.includes(skill.toLowerCase()) || resumeNormalized.includes(normalized);
-  }).slice(0, 16);
-
-  const extraLookup = new Set(extras.map((skill) => skill.toLowerCase()));
-  const uniqueFallback = [...new Set(fallbackSkills.map((skill) => skill.trim()).filter(Boolean))]
-    .filter((skill) => !extraLookup.has(skill.toLowerCase()))
-    .slice(0, 8);
+  const roleFallback = inferRoleSkillGaps(resumeText, role, extras);
+  const roleTemplate = getRoleTemplate(role);
 
   if (!apiKey || !resumeText) {
-    return {
-      detectedSkills: detectedResumeSkills,
-      inferredSkills: uniqueFallback,
-      addedSkills: extras,
-      sourceSummary: resumeText
-        ? `Skill gaps inferred from resume content for ${role}.`
-        : "No resume content was provided, so roadmap skills came from manual input.",
-    };
+    return roleFallback;
   }
 
   try {
@@ -801,6 +773,8 @@ export async function inferSkillGapsFromResume(resumeText, targetRole = "", extr
 - sourceSummary: one concise sentence explaining what the roadmap is based on
 
 Target role: ${role}
+Role baseline skills: ${JSON.stringify(roleTemplate.foundSkills)}
+Role gap template: ${JSON.stringify(roleTemplate.gaps)}
 Resume text:
 ${String(resumeText).slice(0, 8000)}
 
@@ -808,94 +782,136 @@ Rules:
 1. Do not include skills that are already strongly demonstrated in the resume unless they need deeper portfolio proof.
 2. Prefer concrete tools and capabilities over vague traits.
 3. Include user-requested extra skills in addedSkills, not inferredSkills.
-4. Return JSON only.`;
+4. Use the role baseline and role gap template as the fallback domain model.
+5. Do not return web-development skills unless the target role is actually web, MERN, frontend, backend, or full-stack.
+6. Return JSON only.`;
 
     const responseText = await callNvidiaAPI(prompt, true);
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
-    const detectedSkills = Array.isArray(parsed.detectedSkills) ? parsed.detectedSkills : detectedResumeSkills;
+    const detectedSkills = Array.isArray(parsed.detectedSkills) ? parsed.detectedSkills : roleFallback.detectedSkills;
     const inferredSkills = Array.isArray(parsed.inferredSkills) ? parsed.inferredSkills : [];
     const addedSkills = Array.isArray(parsed.addedSkills) ? parsed.addedSkills : extras;
 
     const normalizedAdded = [...new Set(addedSkills.map((skill) => String(skill || "").trim()).filter(Boolean))];
     const addedLookup = new Set(normalizedAdded.map((skill) => skill.toLowerCase()));
+    const allowedFoundSkills = new Set(roleTemplate.foundSkills.map((skill) => skill.toLowerCase()));
+    const allowedGapSkills = new Set(roleTemplate.gaps.map((skill) => skill.toLowerCase()));
+    const roleMatchedDetected = [...new Set(detectedSkills.map((skill) => String(skill || "").trim()).filter(Boolean))]
+      .filter((skill) => allowedFoundSkills.has(skill.toLowerCase()));
+    const roleMatchedGaps = [...new Set(inferredSkills.map((skill) => String(skill || "").trim()).filter(Boolean))]
+      .filter((skill) => allowedGapSkills.has(skill.toLowerCase()))
+      .filter((skill) => !addedLookup.has(skill.toLowerCase()));
 
     return {
-      detectedSkills: [...new Set(detectedSkills.map((skill) => String(skill || "").trim()).filter(Boolean))].slice(0, 16),
-      inferredSkills: [...new Set(inferredSkills.map((skill) => String(skill || "").trim()).filter(Boolean))]
-        .filter((skill) => !addedLookup.has(skill.toLowerCase()))
-        .slice(0, 8),
+      detectedSkills: (roleMatchedDetected.length ? roleMatchedDetected : roleFallback.detectedSkills).slice(0, 16),
+      inferredSkills: (roleMatchedGaps.length ? roleMatchedGaps : roleFallback.inferredSkills).slice(0, 8),
       addedSkills: normalizedAdded,
-      sourceSummary: parsed.sourceSummary || `Skill gaps inferred from resume content for ${role}.`,
+      sourceSummary: roleFallback.sourceSummary,
     };
   } catch (error) {
     console.warn("Failed to infer skill gaps from resume:", error.message);
-    return {
-      detectedSkills: detectedResumeSkills,
-      inferredSkills: uniqueFallback,
-      addedSkills: extras,
-      sourceSummary: `Skill gaps inferred from resume content for ${role}.`,
-    };
+    return roleFallback;
   }
 }
 
 /**
  * Generate personalized skill roadmap with project recommendations
  */
+function learningResourcesForSkill(skill = "") {
+  const lower = String(skill).toLowerCase();
+  const catalog = [
+    {
+      match: ["react", "frontend", "javascript"],
+      resources: [
+        ["React Docs", "Official React learning path with hooks, components, and state patterns.", "https://react.dev/learn", "React", "Beginner", "6-8h", "Documentation", "Free"],
+        ["MDN JavaScript Guide", "Reliable JavaScript fundamentals and browser API references.", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide", "MDN", "Beginner", "8h", "Documentation", "Free"],
+        ["Frontend Mentor", "Practice product-quality UI builds from realistic briefs.", "https://www.frontendmentor.io/", "Frontend Mentor", "Intermediate", "Project", "Project", "Free/Paid"],
+      ],
+    },
+    {
+      match: ["node", "backend", "api", "express"],
+      resources: [
+        ["Node.js Learn", "Official Node guides for runtime fundamentals, APIs, and deployment.", "https://nodejs.org/en/learn", "Node.js", "Beginner", "6h", "Documentation", "Free"],
+        ["freeCodeCamp Backend APIs", "Hands-on backend, REST API, and microservice curriculum.", "https://www.freecodecamp.org/learn/back-end-development-and-apis/", "freeCodeCamp", "Beginner", "20h", "Course", "Free"],
+      ],
+    },
+    {
+      match: ["machine learning", "ai", "ml", "pytorch", "tensorflow"],
+      resources: [
+        ["Hugging Face Learn", "Modern AI workflows using transformers, datasets, and model tooling.", "https://huggingface.co/learn", "Hugging Face", "Intermediate", "12h", "Course", "Free"],
+        ["DeepLearning.AI Short Courses", "Applied AI lessons for production workflows and model reasoning.", "https://www.deeplearning.ai/short-courses/", "DeepLearning.AI", "Intermediate", "4-8h", "Course", "Free/Paid"],
+        ["PyTorch Tutorials", "Official PyTorch tutorials from tensors to model training.", "https://pytorch.org/tutorials/", "PyTorch", "Intermediate", "10h", "Documentation", "Free"],
+      ],
+    },
+    {
+      match: ["security", "cyber", "owasp"],
+      resources: [
+        ["OWASP Top 10", "Core web security risks and practical mitigation guidance.", "https://owasp.org/www-project-top-ten/", "OWASP", "Beginner", "4h", "Documentation", "Free"],
+        ["PortSwigger Web Security Academy", "Interactive labs for real web security vulnerabilities.", "https://portswigger.net/web-security", "PortSwigger", "Intermediate", "20h", "Course", "Free"],
+      ],
+    },
+    {
+      match: ["ui", "ux", "figma", "design"],
+      resources: [
+        ["Figma Learn", "Design tooling, prototyping, and collaboration learning resources.", "https://www.figma.com/resource-library/", "Figma", "Beginner", "5h", "Course", "Free"],
+        ["Nielsen Norman Group", "Research-backed UX articles and usability guidance.", "https://www.nngroup.com/articles/", "NN/g", "Intermediate", "Ongoing", "Article", "Free/Paid"],
+      ],
+    },
+  ];
+
+  const selected = catalog.find((entry) => entry.match.some((term) => lower.includes(term)))?.resources || [
+    ["Official Documentation", `Primary documentation and examples for ${skill}.`, "https://www.google.com/search?q=official+documentation", "Official Docs", "Beginner", "6h", "Documentation", "Free"],
+    ["freeCodeCamp", "Structured lessons with hands-on practice and portfolio projects.", "https://www.freecodecamp.org/learn/", "freeCodeCamp", "Beginner", "20h", "Course", "Free"],
+    ["Project Practice", `Build a practical ${skill} mini project with a README and demo.`, "https://github.com/topics/projects", "GitHub", "Intermediate", "1 week", "Project", "Free"],
+  ];
+
+  return selected.map(([title, description, url, provider, difficulty, duration, type, pricing]) => ({
+    title,
+    description,
+    url,
+    provider,
+    difficulty,
+    duration,
+    type,
+    pricing,
+  }));
+}
+
+function certificationsForSkill(skill = "") {
+  return [
+    {
+      name: `${skill} Portfolio Proof`,
+      provider: "GitHub + Deployed Demo",
+      cost: "Free",
+      recognition: "Strong practical signal when the README, demo, and resume bullet are polished.",
+      link: "https://github.com/",
+    },
+    {
+      name: `${skill} Professional Certificate`,
+      provider: "Coursera / Vendor Academy",
+      cost: "Free audit or paid certificate",
+      recognition: "Useful when matched to the target role and supported by a project.",
+      link: "https://www.coursera.org/",
+    },
+  ];
+}
+
 export async function generateSkillRoadmap(missingSkills, targetRole = "") {
   const apiKey = process.env.NVIDIA_API_KEY;
+  const normalizedSkills = Array.isArray(missingSkills)
+    ? missingSkills.map((skill) => String(skill || "").trim()).filter(Boolean)
+    : [];
+  const roleTemplate = getRoleTemplate(targetRole);
   
-  const fallbackSkills = missingSkills.map(skill => ({
-    skill: skill,
-    proficiency: "intermediate",
-    importance: "high",
-    whyItMatters: `${skill} is commonly screened for ${targetRole || "target"} roles and should be proven through a practical, resume-ready project.`,
-    targetOutcome: `Build enough ${skill} confidence to explain tradeoffs, implement a small feature independently, and show evidence in a portfolio or resume bullet.`,
-    prerequisites: [`Core ${skill} concepts`, "Basic Git/GitHub workflow", "Ability to document project decisions"],
-    milestones: [
-      {
-        week: "Week 1",
-        title: `Build the ${skill} foundation`,
-        goals: [`Understand the core concepts and vocabulary of ${skill}`, "Set up a small practice environment"],
-        practiceTasks: [`Complete a focused ${skill} tutorial`, "Create 3-5 small examples and commit them to GitHub"],
-        deliverables: [`A notes file explaining key ${skill} concepts`, "A working practice repository"],
-        estimatedHours: 6,
-      },
-      {
-        week: "Week 2",
-        title: `Apply ${skill} in a portfolio feature`,
-        goals: [`Use ${skill} in a realistic workflow`, "Prepare proof that can be discussed in interviews"],
-        practiceTasks: ["Build the project MVP", "Write a README with setup steps, screenshots, and tradeoffs"],
-        deliverables: ["A deployed or runnable project", "A resume bullet with measurable scope"],
-        estimatedHours: 12,
-      },
-    ],
-    projects: [
-      {
-        name: `Build a ${skill} Portfolio Project`,
-        description: `Create a practical, role-relevant project demonstrating ${skill} through setup, implementation, documentation, and measurable outcomes.`,
-        timeframe: "1-2 weeks",
-        technologies: [skill],
-        learningResources: [`${skill} documentation`, `Online tutorials for ${skill}`],
-        acceptanceCriteria: [
-          "Project runs locally with documented setup steps",
-          `At least one core ${skill} concept is implemented instead of only mentioned`,
-          "README includes screenshots, architecture notes, and lessons learned",
-        ],
-        portfolioProof: "GitHub repository with a polished README and, if possible, a deployed demo.",
-        resumeBullet: `Built a portfolio project using ${skill}, documenting implementation decisions and delivering a runnable feature for ${targetRole || "target"} workflows.`,
-        stretchGoal: "Add tests, error handling, and a short technical write-up comparing alternate approaches.",
-        estimatedHours: 20,
-      },
-    ],
-  }));
+  const fallbackSkills = buildRoleRoadmapSkills(normalizedSkills, targetRole);
   
   if (!apiKey) {
     return { skills: fallbackSkills };
   }
 
   try {
-    const skillsList = missingSkills.join(", ");
+    const skillsList = (normalizedSkills.length ? normalizedSkills : roleTemplate.gaps).join(", ");
     const prompt = `Generate a detailed AI learning roadmap for these missing skills. Return ONLY valid JSON (no markdown, no extra text) with:
 - skills: array of objects, each with:
   - skill: string
@@ -904,6 +920,8 @@ export async function generateSkillRoadmap(missingSkills, targetRole = "") {
   - whyItMatters: string explaining why recruiters or hiring managers value this skill for the target role
   - targetOutcome: string describing what the learner should be able to build, explain, and show after the roadmap
   - prerequisites: array of 2-4 short strings
+  - learningResources: array of resource objects with title, description, url, provider, difficulty, duration, type, pricing
+  - certifications: array of certification objects with name, provider, cost, recognition, link
   - milestones: array of 3-5 objects with:
     - week: string (example: "Week 1")
     - title: string
@@ -911,6 +929,8 @@ export async function generateSkillRoadmap(missingSkills, targetRole = "") {
     - practiceTasks: array of 2-4 specific tasks
     - deliverables: array of 1-3 tangible outputs
     - estimatedHours: number
+    - learningResources: array of resource objects with title, description, url, provider, difficulty, duration, type, pricing
+    - projects: array of practice project objects
   - projects: array of objects with:
     - name: string
     - description: string with concrete scope and user story
@@ -925,6 +945,10 @@ export async function generateSkillRoadmap(missingSkills, targetRole = "") {
 
 Missing skills: ${skillsList}
 Target role/position: ${targetRole}
+Role baseline skills: ${JSON.stringify(roleTemplate.foundSkills)}
+Role-specific milestone themes: ${JSON.stringify(roleTemplate.milestones)}
+Preferred resources for this role: ${JSON.stringify(roleTemplate.resources.map((item) => item.title))}
+Practice project examples: ${JSON.stringify(roleTemplate.practiceProjects.map((item) => item.name))}
 
 For each skill:
 1. Build a practical 2-4 week learning path with weekly milestones
@@ -932,6 +956,7 @@ For each skill:
 3. Include concrete technologies, learning resources, acceptance criteria, and deliverables
 4. Make the plan beginner-friendly but not vague; every item should be actionable
 5. Include resume bullets that a candidate could adapt after completing the project
+6. Keep resources, projects, and milestones specific to the target role; never use MERN/web-development defaults for unrelated roles.
 
 Return as JSON ONLY:`;
 
@@ -942,7 +967,21 @@ Return as JSON ONLY:`;
     const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
     
     const roadmap = JSON.parse(jsonStr);
-    return roadmap;
+    const allowedSkills = new Set(
+      (normalizedSkills.length ? normalizedSkills : roleTemplate.gaps)
+        .map((skill) => skill.toLowerCase())
+    );
+    const aiSkills = Array.isArray(roadmap.skills)
+      ? roadmap.skills.filter((item) => allowedSkills.has(String(item?.skill || "").trim().toLowerCase()))
+      : [];
+    const fallbackBySkill = new Map(fallbackSkills.map((item) => [item.skill.toLowerCase(), item]));
+    const sanitizedSkills = (normalizedSkills.length ? normalizedSkills : roleTemplate.gaps)
+      .map((skill) => {
+        const aiSkill = aiSkills.find((item) => String(item.skill || "").trim().toLowerCase() === skill.toLowerCase());
+        return aiSkill || fallbackBySkill.get(skill.toLowerCase());
+      })
+      .filter(Boolean);
+    return { skills: sanitizedSkills.length ? sanitizedSkills : fallbackSkills };
   } catch (error) {
     console.warn("Failed to generate skill roadmap:", error.message);
     return { skills: fallbackSkills };

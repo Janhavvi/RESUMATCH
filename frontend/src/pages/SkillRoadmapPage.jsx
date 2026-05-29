@@ -7,8 +7,11 @@ import {
   Target,
   CheckCircle,
   ArrowRight,
+  Bookmark,
   CalendarDays,
   Clipboard,
+  ExternalLink,
+  Filter,
   FileCheck2,
   Sparkles,
   Upload,
@@ -18,6 +21,7 @@ import {
 import { apiFetch } from '../lib/api.js';
 
 const ROADMAP_REQUEST_TIMEOUT_MS = 45000;
+const ROLE_SUGGESTIONS = ['Teacher', 'MERN Developer', 'UI/UX Designer', 'Data Analyst', 'Cybersecurity Analyst'];
 
 function apiFetchWithTimeout(path, options = {}, timeoutMs = ROADMAP_REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -32,24 +36,32 @@ export const SkillRoadmapPage = () => {
   const [roadmap, setRoadmap] = useState(null);
   const [loading, setLoading] = useState(false);
   const [resumeFile, setResumeFile] = useState(null);
+  const [resourceFilter, setResourceFilter] = useState('All');
+  const [savedResources, setSavedResources] = useState({});
+  const [completedResources, setCompletedResources] = useState({});
   const [formData, setFormData] = useState({
     extraSkills: '',
     targetRole: '',
   });
 
   const handleGenerate = async () => {
+    const targetRole = formData.targetRole.trim();
     const extraSkills = formData.extraSkills
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
 
-    if (!resumeFile && extraSkills.length === 0) {
-      alert('Upload a resume or add at least one extra skill');
+    if (!targetRole) {
+      alert('Choose a target role first.');
       return;
     }
 
     try {
       setLoading(true);
+      setRoadmap(null);
+      setResourceFilter('All');
+      setSavedResources({});
+      setCompletedResources({});
 
       let response;
 
@@ -75,7 +87,7 @@ export const SkillRoadmapPage = () => {
             resumeId: uploadedResume.id || null,
             resumeText: uploadedResume.text || '',
             extraSkills,
-            targetRole: formData.targetRole || 'Target Role',
+            targetRole,
           }),
         });
       } else {
@@ -84,7 +96,7 @@ export const SkillRoadmapPage = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             missingSkills: extraSkills,
-            targetRole: formData.targetRole || 'Target Role',
+            targetRole,
           }),
         });
       }
@@ -111,24 +123,29 @@ export const SkillRoadmapPage = () => {
   };
 
   const handleManualOnlyGenerate = async () => {
+    const targetRole = formData.targetRole.trim();
     const skills = formData.extraSkills
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
 
-    if (skills.length === 0) {
-      alert('Add at least one skill to generate a manual roadmap');
+    if (!targetRole) {
+      alert('Choose a target role first.');
       return;
     }
 
     try {
       setLoading(true);
+      setRoadmap(null);
+      setResourceFilter('All');
+      setSavedResources({});
+      setCompletedResources({});
       const response = await apiFetchWithTimeout('/api/skills/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           missingSkills: skills,
-          targetRole: formData.targetRole || 'Target Role',
+          targetRole,
         }),
       });
 
@@ -140,7 +157,9 @@ export const SkillRoadmapPage = () => {
 
       setRoadmap({
         ...data.roadmap,
-        sourceSummary: 'Roadmap generated from manually added skills.',
+        sourceSummary: skills.length
+          ? 'Roadmap generated from manually added skills and the selected role template.'
+          : `Roadmap generated from the ${targetRole} role template.`,
         detectedSkills: [],
         inferredSkills: [],
         addedSkills: skills,
@@ -162,6 +181,37 @@ export const SkillRoadmapPage = () => {
 
   const totalProjects = roadmap?.missingSkills?.reduce((sum, skill) => sum + (skill.projects?.length || 0), 0) || 0;
   const totalMilestones = roadmap?.missingSkills?.reduce((sum, skill) => sum + (skill.milestones?.length || 0), 0) || 0;
+  const resourceFilters = ['All', 'Free', 'Paid', 'Beginner', 'Intermediate', 'Advanced', 'Video', 'Course', 'Documentation', 'Article', 'Project'];
+  const normalizeResource = (resource, fallbackSkill = '') => {
+    if (typeof resource === 'string') {
+      return {
+        title: resource,
+        description: `Use this resource to strengthen ${fallbackSkill || 'this skill'} with practical notes and examples.`,
+        url: 'https://www.google.com/search?q=' + encodeURIComponent(resource),
+        provider: 'Search',
+        difficulty: 'Beginner',
+        duration: 'Self-paced',
+        type: 'Documentation',
+        pricing: 'Free',
+      };
+    }
+    return {
+      title: resource?.title || `${fallbackSkill} resource`,
+      description: resource?.description || 'Curated learning resource for this milestone.',
+      url: resource?.url || '#',
+      provider: resource?.provider || 'Resource',
+      difficulty: resource?.difficulty || 'Beginner',
+      duration: resource?.duration || 'Self-paced',
+      type: resource?.type || 'Documentation',
+      pricing: resource?.pricing || resource?.cost || 'Free',
+    };
+  };
+
+  const resourceMatchesFilter = (resource) => {
+    if (resourceFilter === 'All') return true;
+    const haystack = `${resource.pricing} ${resource.difficulty} ${resource.type}`.toLowerCase();
+    return haystack.includes(resourceFilter.toLowerCase());
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
@@ -243,12 +293,28 @@ export const SkillRoadmapPage = () => {
                 <label className="block text-sm font-semibold mb-2 text-slate-300">Target Role / Position</label>
                 <input
                   type="text"
-                  placeholder="e.g., Junior Full-Stack Developer, Data Analyst, DevOps Engineer"
+                  placeholder="e.g., Teacher, Data Analyst, UI/UX Designer"
                   value={formData.targetRole}
                   onChange={(e) => setFormData({ ...formData, targetRole: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-300/40"
                 />
-                <p className="text-xs text-slate-500 mt-1">Used by AI to compare your resume against role expectations</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {ROLE_SUGGESTIONS.map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, targetRole: role })}
+                      className={`rounded-full border px-3 py-1.5 text-[11px] font-bold transition-all ${
+                        formData.targetRole === role
+                          ? 'border-cyan-300/50 bg-cyan-300 text-slate-950'
+                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-cyan-300/30'
+                      }`}
+                    >
+                      {role}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 mt-2">Required. The roadmap fallback is role-specific, even if AI is unavailable.</p>
               </div>
 
               <div>
@@ -264,9 +330,15 @@ export const SkillRoadmapPage = () => {
               </div>
             </div>
 
-            {!resumeFile && formData.extraSkills.trim() && (
+            {!formData.targetRole.trim() && (
               <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-medium text-amber-100">
-                No resume selected, so the roadmap will use only your extra skills.
+                Choose a target role first so the roadmap does not fall back to unrelated skills.
+              </div>
+            )}
+
+            {!resumeFile && formData.targetRole.trim() && (
+              <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm font-medium text-cyan-100">
+                No resume selected, so the roadmap will use the {formData.targetRole.trim()} role template plus any extra skills you add.
               </div>
             )}
 
@@ -298,13 +370,13 @@ export const SkillRoadmapPage = () => {
               )}
             </button>
 
-            {formData.extraSkills.trim() && resumeFile && (
+            {resumeFile && (
               <button
                 onClick={handleManualOnlyGenerate}
                 disabled={loading}
                 className="w-full rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-xs font-black uppercase tracking-[0.18em] text-slate-300 transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:text-slate-600"
               >
-                Generate From Extra Skills Only
+                Generate From Role Template Only
               </button>
             )}
           </div>
@@ -386,6 +458,27 @@ export const SkillRoadmapPage = () => {
             </div>
           )}
 
+          <div className="rounded-[28px] border border-cyan-300/15 bg-white/[0.035] p-5">
+            <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-slate-300">
+              <Filter className="size-4 text-cyan-300" /> Resource Filters
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {resourceFilters.map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setResourceFilter(filter)}
+                  className={`rounded-full border px-3 py-2 text-xs font-bold transition-all ${
+                    resourceFilter === filter
+                      ? 'border-cyan-300/50 bg-cyan-300 text-slate-950'
+                      : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-cyan-300/30'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Skills and Projects */}
           {roadmap.missingSkills && roadmap.missingSkills.length > 0 ? (
             <div className="space-y-6">
@@ -451,6 +544,74 @@ export const SkillRoadmapPage = () => {
                     )}
                   </div>
 
+                  {skill.learningResources && skill.learningResources.length > 0 && (
+                    <div className="border-b border-white/10 p-6">
+                      <h4 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-slate-300">
+                        <ExternalLink className="size-4 text-cyan-300" /> Learning Resources
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {skill.learningResources.map((item, resourceIdx) => {
+                          const resource = normalizeResource(item, skill.skill);
+                          const resourceId = `${skill.skill}-${resource.title}-${resourceIdx}`;
+                          if (!resourceMatchesFilter(resource)) return null;
+                          return (
+                            <div key={resourceId} className="rounded-2xl border border-white/10 bg-black/20 p-4 transition-all hover:-translate-y-1 hover:border-cyan-300/30">
+                              <div className="mb-3 flex items-start justify-between gap-3">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-cyan-300/10 text-xs font-black text-cyan-100">
+                                  {resource.provider.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setSavedResources((current) => ({ ...current, [resourceId]: !current[resourceId] }))}
+                                    className={`rounded-lg p-2 ${savedResources[resourceId] ? 'bg-purple-400/20 text-purple-200' : 'bg-white/5 text-slate-400'}`}
+                                    aria-label="Save resource"
+                                  >
+                                    <Bookmark className="size-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setCompletedResources((current) => ({ ...current, [resourceId]: !current[resourceId] }))}
+                                    className={`rounded-lg p-2 ${completedResources[resourceId] ? 'bg-emerald-400/20 text-emerald-200' : 'bg-white/5 text-slate-400'}`}
+                                    aria-label="Mark complete"
+                                  >
+                                    <CheckCircle className="size-4" />
+                                  </button>
+                                </div>
+                              </div>
+                              <h5 className="font-black text-slate-100">{resource.title}</h5>
+                              <p className="mt-2 text-sm leading-relaxed text-slate-400">{resource.description}</p>
+                              <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest">
+                                <span className="rounded-full bg-white/10 px-2 py-1 text-slate-300">{resource.duration}</span>
+                                <span className="rounded-full bg-cyan-300/10 px-2 py-1 text-cyan-100">{resource.difficulty}</span>
+                                <span className="rounded-full bg-purple-300/10 px-2 py-1 text-purple-100">{resource.type}</span>
+                                <span className="rounded-full bg-emerald-300/10 px-2 py-1 text-emerald-100">{resource.pricing}</span>
+                              </div>
+                              <a href={resource.url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-950">
+                                Open Resource <ExternalLink className="size-3" />
+                              </a>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {skill.certifications && skill.certifications.length > 0 && (
+                    <div className="border-b border-white/10 p-6">
+                      <h4 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-slate-300">
+                        <FileCheck2 className="size-4 text-emerald-300" /> Certifications
+                      </h4>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {skill.certifications.map((cert, certIdx) => (
+                          <a key={certIdx} href={cert.link || '#'} target="_blank" rel="noreferrer" className="rounded-2xl border border-emerald-300/15 bg-emerald-300/5 p-4 transition-all hover:border-emerald-300/35">
+                            <p className="font-black text-emerald-100">{cert.name}</p>
+                            <p className="mt-1 text-sm text-slate-400">{cert.provider} • {cert.cost}</p>
+                            <p className="mt-2 text-sm text-slate-300">{cert.recognition}</p>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Milestones */}
                   {skill.milestones && skill.milestones.length > 0 && (
                     <div className="p-6 border-b border-white/10">
@@ -508,6 +669,38 @@ export const SkillRoadmapPage = () => {
                                     <span key={deliverableIdx} className="rounded-lg border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-100">
                                       {deliverable}
                                     </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {milestone.learningResources && milestone.learningResources.length > 0 && (
+                              <div className="mt-4 border-t border-white/5 pt-4">
+                                <p className="mb-2 text-xs font-bold uppercase text-slate-500">Milestone Resources</p>
+                                <div className="space-y-2">
+                                  {milestone.learningResources.map((item, idx) => {
+                                    const resource = normalizeResource(item, skill.skill);
+                                    if (!resourceMatchesFilter(resource)) return null;
+                                    return (
+                                      <a key={idx} href={resource.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] px-3 py-2 text-sm text-cyan-100 hover:bg-cyan-300/10">
+                                        <span>{resource.title}</span>
+                                        <span className="text-xs text-slate-500">{resource.type}</span>
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {milestone.projects && milestone.projects.length > 0 && (
+                              <div className="mt-4 border-t border-white/5 pt-4">
+                                <p className="mb-2 text-xs font-bold uppercase text-slate-500">Practice Projects</p>
+                                <div className="space-y-2">
+                                  {milestone.projects.map((project, idx) => (
+                                    <div key={idx} className="rounded-xl bg-purple-400/10 p-3">
+                                      <p className="font-bold text-purple-100">{project.name}</p>
+                                      <p className="mt-1 text-xs leading-relaxed text-slate-300">{project.description}</p>
+                                    </div>
                                   ))}
                                 </div>
                               </div>
@@ -600,12 +793,16 @@ export const SkillRoadmapPage = () => {
                             <div className="space-y-2 pt-2 border-t border-white/5">
                               <p className="text-xs font-semibold text-slate-400 uppercase">Learning Resources:</p>
                               <ul className="space-y-1">
-                                {project.learningResources.map((resource, resIdx) => (
-                                  <li key={resIdx} className="text-sm text-cyan-300 flex items-center gap-2">
-                                    <ArrowRight className="size-3" />
-                                    {resource}
-                                  </li>
-                                ))}
+                                {project.learningResources.map((item, resIdx) => {
+                                  const resource = normalizeResource(item, skill.skill);
+                                  if (!resourceMatchesFilter(resource)) return null;
+                                  return (
+                                    <li key={resIdx} className="flex items-center justify-between gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-sm text-cyan-300">
+                                      <span className="flex items-center gap-2"><ArrowRight className="size-3" /> {resource.title}</span>
+                                      <a href={resource.url} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-cyan-100">Open</a>
+                                    </li>
+                                  );
+                                })}
                               </ul>
                             </div>
                           )}

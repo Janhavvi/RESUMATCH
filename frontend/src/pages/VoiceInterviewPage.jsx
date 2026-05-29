@@ -441,6 +441,32 @@ export const VoiceInterviewPage = () => {
     }
   };
 
+  const startRecognitionSafely = useCallback((failureMessage = 'Recording failed. Use retry or type manually.') => {
+    const attemptStart = (rebuild = false) => {
+      if (rebuild) configureRecognition();
+      window.setTimeout(() => {
+        try {
+          recognitionRef.current?.start();
+        } catch {
+          if (!rebuild) {
+            attemptStart(true);
+            return;
+          }
+          desiredRecordingRef.current = false;
+          pausedRef.current = false;
+          setIsRecording(false);
+          setIsPaused(false);
+          setIsListening(false);
+          setIsProcessing(false);
+          setInterviewState('Thinking');
+          setRecordingStatus('Ready');
+          setSpeechError(failureMessage);
+        }
+      }, rebuild ? 450 : 250);
+    };
+    attemptStart(false);
+  }, [configureRecognition]);
+
   const beginRecording = async ({ clear = false } = {}) => {
     if (speechSupport === 'unsupported' || !recognitionRef.current) {
       setSpeechError('Speech recognition is not supported in this browser. Type your answer manually.');
@@ -466,11 +492,7 @@ export const VoiceInterviewPage = () => {
     setSpeechError('');
     setRecordingSeconds(clear ? 0 : recordingSeconds);
     setRecordingStatus('Listening');
-    try {
-      recognitionRef.current.start();
-    } catch {
-      setSpeechError('Recording is already active. Stop or pause it before starting again.');
-    }
+    startRecognitionSafely('Recording failed. Use retry or type manually.');
   };
 
   const stopRecording = () => {
@@ -503,16 +525,20 @@ export const VoiceInterviewPage = () => {
     baseTranscriptRef.current = userAnswer.trim();
     finalTranscriptRef.current = '';
     interimTranscriptRef.current = '';
-    desiredRecordingRef.current = true;
+    desiredRecordingRef.current = false;
     pausedRef.current = false;
+    try {
+      recognitionRef.current?.abort();
+    } catch {
+      // Ignore browser-specific abort failures.
+    }
+    desiredRecordingRef.current = true;
     setIsPaused(false);
+    setIsRecording(false);
+    setIsListening(false);
     setSpeechError('');
     setRecordingStatus('Listening');
-    try {
-      recognitionRef.current?.start();
-    } catch {
-      setSpeechError('Resume failed. Use retry or type manually.');
-    }
+    startRecognitionSafely('Resume failed. Use retry or type manually.');
   };
 
   const retryRecording = () => {
@@ -523,7 +549,12 @@ export const VoiceInterviewPage = () => {
     } catch {
       // Ignore browser-specific abort failures.
     }
-    beginRecording({ clear: true });
+    setIsRecording(false);
+    setIsPaused(false);
+    setIsListening(false);
+    setIsProcessing(false);
+    setRecordingStatus('Retrying');
+    window.setTimeout(() => beginRecording({ clear: true }), 550);
   };
 
   const submitAnswer = async () => {

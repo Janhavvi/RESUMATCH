@@ -112,6 +112,12 @@ const interviewQuestionSchema = new mongoose.Schema(
     score: Number,
     feedback: String,
     fillerWords: [String],
+    strengths: [String],
+    weaknesses: [String],
+    missingInformation: [String],
+    betterAnswer: String,
+    followUpQuestion: String,
+    dimensions: mongoose.Schema.Types.Mixed,
   },
   { _id: false }
 );
@@ -129,6 +135,11 @@ const interviewSessionSchema = new mongoose.Schema(
     },
     resumeName: String,
     resumeText: String,
+    role: String,
+    interviewType: String,
+    difficulty: String,
+    strictMode: Boolean,
+    askedQuestions: [String],
     questions: [interviewQuestionSchema],
     overallScore: Number,
     status: {
@@ -205,6 +216,27 @@ const skillRoadmapSchema = new mongoose.Schema(
         whyItMatters: String,
         targetOutcome: String,
         prerequisites: [String],
+        learningResources: [
+          {
+            title: String,
+            description: String,
+            url: String,
+            provider: String,
+            difficulty: String,
+            duration: String,
+            type: String,
+            pricing: String,
+          },
+        ],
+        certifications: [
+          {
+            name: String,
+            provider: String,
+            cost: String,
+            recognition: String,
+            link: String,
+          },
+        ],
         milestones: [
           {
             week: String,
@@ -213,6 +245,31 @@ const skillRoadmapSchema = new mongoose.Schema(
             practiceTasks: [String],
             deliverables: [String],
             estimatedHours: Number,
+            learningResources: [
+              {
+                title: String,
+                description: String,
+                url: String,
+                provider: String,
+                difficulty: String,
+                duration: String,
+                type: String,
+                pricing: String,
+              },
+            ],
+            projects: [
+              {
+                name: String,
+                description: String,
+                timeframe: String,
+                technologies: [String],
+                acceptanceCriteria: [String],
+                portfolioProof: String,
+                resumeBullet: String,
+                stretchGoal: String,
+                estimatedHours: Number,
+              },
+            ],
           },
         ],
         projects: [
